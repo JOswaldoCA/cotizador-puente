@@ -27,3 +27,36 @@ export function fechaHoy() {
     year:  'numeric',
   }).toUpperCase()
 }
+
+export function estaVencida(fecha, vigencia) {
+  if (!fecha || !vigencia) return false
+
+  // Parsear fecha de la cotización
+  const meses = {
+    'enero': 0, 'febrero': 1, 'marzo': 2, 'abril': 3,
+    'mayo': 4, 'junio': 5, 'julio': 6, 'agosto': 7,
+    'septiembre': 8, 'octubre': 9, 'noviembre': 10, 'diciembre': 11,
+  }
+
+  const partes = fecha.toLowerCase().split(' de ')
+  if (partes.length < 3) return false
+
+  const dia  = parseInt(partes[0])
+  const mes  = meses[partes[1]]
+  const año  = parseInt(partes[2])
+
+  if (isNaN(dia) || mes === undefined || isNaN(año)) return false
+
+  const fechaCot = new Date(año, mes, dia)
+
+  // Calcular días de vigencia
+  let dias = 30
+  if (vigencia.includes('15')) dias = 15
+  if (vigencia.includes('30')) dias = 30
+  if (vigencia.includes('1 MES')) dias = 30
+
+  const fechaVence = new Date(fechaCot)
+  fechaVence.setDate(fechaVence.getDate() + dias)
+
+  return new Date() > fechaVence
+}

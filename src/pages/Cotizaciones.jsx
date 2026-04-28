@@ -5,6 +5,7 @@ import {
   obtenerCotizacion,
 } from "../services/cotizaciones";
 import { generarPDFBase64 } from "../utils/generarPDF";
+import { estaVencida } from "../utils/calculos";
 
 export default function Cotizaciones() {
   const [cotizaciones, setCotizaciones] = useState([]);
@@ -101,6 +102,16 @@ export default function Cotizaciones() {
           onChange={(e) => setBusqueda(e.target.value)}
           className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-600 bg-white"
         />
+        <div className="flex items-center gap-4 text-xs text-gray-400">
+          <div className="flex items-center gap-1.5">
+            <div className="w-3 h-3 rounded bg-red-100 border border-red-200"></div>
+            <span>Cotización vencida</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <div className="w-3 h-3 rounded bg-white border border-gray-200"></div>
+            <span>Vigente</span>
+          </div>
+        </div>
 
         {/* Tabla */}
         {filtradas.length === 0 ? (
@@ -130,72 +141,88 @@ export default function Cotizaciones() {
                 </tr>
               </thead>
               <tbody>
-                {filtradas.map((cot, i) => (
-                  <tr
-                    key={cot.folio}
-                    className={`border-t border-gray-100 hover:bg-gray-50 transition-colors text-sm ${i % 2 === 0 ? "bg-white" : "bg-gray-50/40"}`}
-                  >
-                    <td className="px-6 py-4">
-                      <p className="font-medium text-gray-800">
-                        {cot.cliente?.atencion || "—"}
-                      </p>
-                      <p className="text-xs text-gray-400">
-                        {cot.cliente?.contacto}
-                      </p>
-                    </td>
-                    <td className="px-6 py-4 font-mono text-xs text-gray-500">
-                      {cot.folio}
-                    </td>
-                    <td className="px-6 py-4 text-gray-500 text-xs">
-                      {cot.fecha}
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className="text-xs bg-primary-50 text-primary-600 font-medium px-2 py-1 rounded-lg">
-                        {cot.sucursal?.tipo}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex flex-col gap-1">
-                        {cot.opciones?.map((op, j) => (
-                          <div key={j} className="text-xs text-gray-500">
-                            <span className="font-medium text-primary-600">
-                              Op.{j + 1}
-                            </span>{" "}
-                            $
-                            {op.total?.toLocaleString("es-MX", {
-                              minimumFractionDigits: 2,
-                            })}{" "}
-                            MXN
-                          </div>
-                        ))}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center justify-end gap-2">
-                        <button
-                          onClick={() =>
-                            window.open(`/preview/${cot.folio}`, "_blank")
-                          }
-                          className="text-xs bg-primary-600 text-white px-3 py-1.5 rounded-lg hover:bg-primary-800 transition-colors"
-                        >
-                          PDF
-                        </button>
-                        <button
-                          onClick={() => abrirEmailModal(cot)}
-                          className="text-xs border border-primary-600 text-primary-600 px-3 py-1.5 rounded-lg hover:bg-primary-50 transition-colors"
-                        >
-                          ✉️
-                        </button>
-                        <button
-                          onClick={() => eliminar(cot.folio)}
-                          className="text-xs border border-red-200 text-red-400 px-3 py-1.5 rounded-lg hover:bg-red-50 transition-colors"
-                        >
-                          🗑️
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                {filtradas.map((cot, i) => {
+                  const vencida = estaVencida(cot.fecha, cot.cliente?.vigencia);
+                  return (
+                    <tr
+                      key={cot.folio}
+                      className={`border-t border-gray-100 hover:bg-gray-50 transition-colors text-sm ${
+                        vencida
+                          ? "bg-red-50"
+                          : i % 2 === 0
+                            ? "bg-white"
+                            : "bg-gray-50/40"
+                      }`}
+                    >
+                      <td className="px-6 py-4">
+                        <p className="font-medium text-gray-800">
+                          {cot.cliente?.atencion || "—"}
+                        </p>
+                        <p className="text-xs text-gray-400">
+                          {cot.cliente?.contacto}
+                        </p>
+                      </td>
+                      <td className="px-6 py-4 font-mono text-xs text-gray-500">
+                        {cot.folio}
+                      </td>
+                      <td className="px-6 py-4 text-gray-500 text-xs">
+                        {cot.fecha}
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex flex-col gap-1">
+                          <span className="text-xs bg-primary-50 text-primary-600 font-medium px-2 py-1 rounded-lg w-fit">
+                            {cot.sucursal?.tipo}
+                          </span>
+                          {vencida && (
+                            <span className="text-xs bg-red-100 text-red-600 font-medium px-2 py-1 rounded-lg w-fit">
+                              ⚠️ Vencida
+                            </span>
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex flex-col gap-1">
+                          {cot.opciones?.map((op, j) => (
+                            <div key={j} className="text-xs text-gray-500">
+                              <span className="font-medium text-primary-600">
+                                Op.{j + 1}
+                              </span>{" "}
+                              $
+                              {op.total?.toLocaleString("es-MX", {
+                                minimumFractionDigits: 2,
+                              })}{" "}
+                              MXN
+                            </div>
+                          ))}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex items-center justify-end gap-2">
+                          <button
+                            onClick={() =>
+                              window.open(`/preview/${cot.folio}`, "_blank")
+                            }
+                            className="text-xs bg-primary-600 text-white px-3 py-1.5 rounded-lg hover:bg-primary-800 transition-colors"
+                          >
+                            PDF
+                          </button>
+                          <button
+                            onClick={() => abrirEmailModal(cot)}
+                            className="text-xs border border-primary-600 text-primary-600 px-3 py-1.5 rounded-lg hover:bg-primary-50 transition-colors"
+                          >
+                            ✉️
+                          </button>
+                          <button
+                            onClick={() => eliminar(cot.folio)}
+                            className="text-xs border border-red-200 text-red-400 px-3 py-1.5 rounded-lg hover:bg-red-50 transition-colors"
+                          >
+                            🗑️
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>

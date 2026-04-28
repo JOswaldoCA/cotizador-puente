@@ -1,9 +1,10 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useCotizacion } from '../hooks/useCotizacion'
 import { SUCURSALES, FRECUENCIAS, CAPACIDADES } from '../utils/constantes'
 import { fechaHoy } from '../utils/calculos'
 import { guardarCotizacion } from '../services/cotizaciones'
 import ModalCotizacion from '../components/ModalCotizacion'
+import { useAuth } from '../hooks/useAuth'
 
 const input   = 'border border-gray-200 rounded-lg px-3 py-2.5 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-primary-600 w-full bg-white'
 const label   = 'text-xs font-medium text-gray-600 mb-1 block'
@@ -19,8 +20,17 @@ export default function NuevaCotizacion() {
     cliente, setCliente,
   } = useCotizacion()
 
+  const { perfil } = useAuth()
   const [modalFolio, setModalFolio] = useState(null)
   const [guardando, setGuardando]   = useState(false)
+
+  // Tomar sucursal del perfil del usuario
+  useEffect(() => {
+    if (perfil?.sucursal_id) {
+      const sucursalPerfil = SUCURSALES.find(s => s.id === perfil.sucursal_id)
+      if (sucursalPerfil) setSucursal(sucursalPerfil)
+    }
+  }, [perfil])
 
   const guardar = async () => {
     if (!cliente.atencion) return alert('Escribe el nombre del cliente.')
@@ -59,23 +69,14 @@ export default function NuevaCotizacion() {
           </span>
         </div>
 
-        {/* Sucursal */}
-        <div className={section}>
-          {sectionHeader('Sucursal emisora')}
-          <div className="p-6 flex gap-3">
-            {SUCURSALES.map(s => (
-              <button key={s.id} type="button" onClick={() => setSucursal(s)}
-                className={`flex-1 rounded-xl border-2 px-4 py-3 text-left transition-all ${
-                  sucursal.id === s.id
-                    ? 'border-primary-600 bg-primary-50'
-                    : 'border-gray-200 hover:border-gray-300'
-                }`}>
-                <p className={`text-sm font-semibold ${sucursal.id === s.id ? 'text-primary-600' : 'text-gray-700'}`}>
-                  {s.tipo}
-                </p>
-                <p className="text-xs text-gray-400 mt-0.5">{s.ciudad}</p>
-              </button>
-            ))}
+        {/* Sucursal — solo informativo */}
+        <div className="flex items-center gap-3 bg-primary-50 border border-primary-100 rounded-xl px-4 py-3">
+          <div className="w-8 h-8 rounded-lg bg-primary-600 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
+            🏢
+          </div>
+          <div>
+            <p className="text-xs font-semibold text-primary-600">{sucursal?.tipo}</p>
+            <p className="text-xs text-gray-400">{sucursal?.ciudad}</p>
           </div>
         </div>
 
@@ -184,8 +185,8 @@ export default function NuevaCotizacion() {
                 {/* Resumen opción */}
                 <div className="grid grid-cols-3 divide-x divide-gray-200 border-t border-gray-200">
                   {[
-                    { label: 'Subtotal', value: op.subtotal },
-                    { label: 'IVA 16%',  value: op.iva },
+                    { label: 'Subtotal',     value: op.subtotal },
+                    { label: 'IVA 16%',      value: op.iva },
                     { label: 'Neto mensual', value: op.total, highlight: true },
                   ].map(({ label: l, value, highlight }) => (
                     <div key={l} className={`text-center py-3 px-2 ${highlight ? 'bg-primary-50' : ''}`}>
