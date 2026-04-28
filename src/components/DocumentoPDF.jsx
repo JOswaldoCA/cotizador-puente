@@ -1,5 +1,13 @@
-import { Document, Page, Text, View, StyleSheet } from "@react-pdf/renderer";
+import {
+  Document,
+  Page,
+  Text,
+  View,
+  StyleSheet,
+  Image,
+} from "@react-pdf/renderer";
 import { BASES } from "../utils/constantes";
+import { logoBase64 } from "../assets/logoBase64";
 
 const styles = StyleSheet.create({
   page: { fontFamily: "Helvetica", fontSize: 10, padding: 28, color: "#111" },
@@ -88,27 +96,10 @@ export function DocumentoPDF({ cot }) {
         >
           {/* Izquierda — Logo */}
           <View style={{ width: "45%" }}>
-            <View
-              style={{
-                backgroundColor: "#FFD700",
-                padding: "6 10",
-                marginBottom: 4,
-                alignSelf: "flex-start",
-              }}
-            >
-              <Text
-                style={{
-                  fontSize: 11,
-                  fontFamily: "Helvetica-Bold",
-                  color: "#1B3A6B",
-                }}
-              >
-                PUENTE AMBIENTAL DEL NOROESTE
-              </Text>
-            </View>
-            <Text style={{ fontSize: 7, color: "#555" }}>
-              Recolección de residuos sólidos urbanos
-            </Text>
+            <Image
+              src={logoBase64}
+              style={{ width: 160, height: 60, objectFit: "contain" }}
+            />
           </View>
 
           {/* Derecha — Datos empresa */}
