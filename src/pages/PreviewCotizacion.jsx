@@ -130,6 +130,29 @@ export default function PreviewCotizacion() {
                   fontSize: 10,
                 }}
               >
+                <strong>FOLIO:</strong>
+              </td>
+              <td
+                style={{
+                  border: "1px solid #ccc",
+                  padding: "3px 8px",
+                  fontSize: 10,
+                  fontWeight: 700,
+                  color: "#1B3A6B",
+                }}
+              >
+                {folio}
+              </td>
+            </tr>
+            <tr>
+              <td width="55%"></td>
+              <td
+                style={{
+                  border: "1px solid #ccc",
+                  padding: "3px 8px",
+                  fontSize: 10,
+                }}
+              >
                 <strong>COTIZACION PRESENTADA:</strong>
               </td>
               <td
