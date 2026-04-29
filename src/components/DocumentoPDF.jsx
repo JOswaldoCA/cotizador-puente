@@ -80,7 +80,7 @@ const fmt = (n) =>
   `$${Number(n).toLocaleString("es-MX", { minimumFractionDigits: 2 })}`;
 
 export function DocumentoPDF({ cot }) {
-  const { sucursal, cliente, opciones, fecha } = cot;
+  const { sucursal, cliente, opciones, fecha, folio } = cot;
 
   return (
     <Document>
@@ -135,6 +135,12 @@ export function DocumentoPDF({ cot }) {
         <View style={styles.divider} />
 
         {/* FECHA Y VIGENCIA */}
+        <View style={styles.fechaRow}>
+          <View style={styles.fechaBox}>
+            <Text style={styles.fechaLabel}>FOLIO:</Text>
+            <Text style={styles.fechaValor}>{folio}</Text>
+          </View>
+        </View>
         <View style={styles.fechaRow}>
           <View style={styles.fechaBox}>
             <Text style={styles.fechaLabel}>COTIZACIÓN PRESENTADA:</Text>
