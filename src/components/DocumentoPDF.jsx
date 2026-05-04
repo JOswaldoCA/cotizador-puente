@@ -74,6 +74,17 @@ const styles = StyleSheet.create({
   },
   baseItem: { fontSize: 8, color: "#555", marginBottom: 2, lineHeight: 1.4 },
   border: { border: "1px solid #ccc" },
+  srvRow: {
+    flexDirection: "row",
+    borderBottom: "1px solid #e5e7eb",
+    backgroundColor: "#fafafa",
+  },
+  totalRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    padding: "2 8",
+    borderBottom: "1px solid #e5e7eb",
+  },
 });
 
 const fmt = (n) =>
@@ -94,15 +105,12 @@ export function DocumentoPDF({ cot }) {
             alignItems: "flex-start",
           }}
         >
-          {/* Izquierda — Logo */}
           <View style={{ width: "45%" }}>
             <Image
               src={logoBase64}
               style={{ width: 160, height: 60, objectFit: "contain" }}
             />
           </View>
-
-          {/* Derecha — Datos empresa */}
           <View style={{ width: "50%", alignItems: "flex-end" }}>
             <Text
               style={{
@@ -134,7 +142,7 @@ export function DocumentoPDF({ cot }) {
 
         <View style={styles.divider} />
 
-        {/* FECHA Y VIGENCIA */}
+        {/* FOLIO / FECHA / VIGENCIA */}
         <View style={styles.fechaRow}>
           <View style={styles.fechaBox}>
             <Text style={styles.fechaLabel}>FOLIO:</Text>
@@ -182,9 +190,14 @@ export function DocumentoPDF({ cot }) {
 
         {/* TABLA OPCIONES */}
         <View style={styles.border}>
+          {/* Header tabla */}
           <View style={styles.tableHeader}>
-            <Text style={{ ...styles.tableHeaderCell, flex: 2 }}>
-              DESCRIPCIÓN
+            <Text style={{ ...styles.tableHeaderCell, flex: 2 }}>SERVICIO</Text>
+            <Text style={{ ...styles.tableHeaderCell, textAlign: "center" }}>
+              CONTENEDORES
+            </Text>
+            <Text style={{ ...styles.tableHeaderCell, textAlign: "center" }}>
+              VISITAS/SEM
             </Text>
             <Text style={{ ...styles.tableHeaderCell, textAlign: "right" }}>
               TOTAL
@@ -193,23 +206,42 @@ export function DocumentoPDF({ cot }) {
 
           {opciones?.map((op, i) => (
             <View key={i}>
+              {/* Título opción */}
               <Text style={styles.opcionTitle}>OPCION {i + 1}</Text>
 
-              {/* Servicio + Totales */}
-              <View style={styles.row}>
-                <Text style={{ ...styles.cell, flex: 2 }}>
-                  SERVICIO DE RECOLECCION DE BASURA (RSU) ** PRECIOS{" "}
-                  {new Date().getFullYear()}
-                </Text>
-                <View style={{ flex: 1 }}>
-                  <View
-                    style={{
-                      flexDirection: "row",
-                      justifyContent: "space-between",
-                      padding: "2 8",
-                      borderBottom: "1px solid #e5e7eb",
-                    }}
-                  >
+              {/* Servicios de la opción */}
+              {(op.servicios || []).map((srv, si) => {
+                const lineTotal =
+                  srv.precioUnitario * srv.numContenedores +
+                  srv.precioDia * srv.diasSemana;
+                return (
+                  <View key={si} style={styles.srvRow}>
+                    <Text style={{ ...styles.cell, flex: 2 }}>
+                      {srv.nombre?.toUpperCase() || "—"}
+                    </Text>
+                    <Text style={{ ...styles.cell, textAlign: "center" }}>
+                      {srv.numContenedores} PZA
+                    </Text>
+                    <Text style={{ ...styles.cell, textAlign: "center" }}>
+                      {srv.diasSemana} VIS/SEM
+                    </Text>
+                    <Text style={{ ...styles.cell, textAlign: "right" }}>
+                      {fmt(lineTotal)}
+                    </Text>
+                  </View>
+                );
+              })}
+
+              {/* Totales opción */}
+              <View
+                style={{
+                  flexDirection: "row",
+                  borderBottom: "1px solid #e5e7eb",
+                }}
+              >
+                <View style={{ flex: 2 }} />
+                <View style={{ flex: 2 }}>
+                  <View style={styles.totalRow}>
                     <Text style={{ fontSize: 8, color: "#555" }}>
                       SUBTOTAL $
                     </Text>
@@ -217,14 +249,7 @@ export function DocumentoPDF({ cot }) {
                       {fmt(op.subtotal)}
                     </Text>
                   </View>
-                  <View
-                    style={{
-                      flexDirection: "row",
-                      justifyContent: "space-between",
-                      padding: "2 8",
-                      borderBottom: "1px solid #e5e7eb",
-                    }}
-                  >
+                  <View style={styles.totalRow}>
                     <Text style={{ fontSize: 8, color: "#555" }}>IVA $</Text>
                     <Text style={{ fontSize: 8 }}>{fmt(op.iva)}</Text>
                   </View>
@@ -249,28 +274,6 @@ export function DocumentoPDF({ cot }) {
                     </Text>
                   </View>
                 </View>
-              </View>
-
-              {/* Frecuencia */}
-              <View style={styles.row}>
-                <Text style={styles.cell}>
-                  DIAS DE RECOLECCION: {op.frecuencia?.toUpperCase()}
-                </Text>
-              </View>
-
-              {/* Capacidad */}
-              <View style={styles.row}>
-                <Text style={styles.cell}>
-                  CAPACIDAD DE CONTENEDOR: {op.capacidad?.toUpperCase()}
-                </Text>
-              </View>
-
-              {/* Contenedores */}
-              <View style={styles.row}>
-                <Text style={styles.cell}>
-                  CONTENEDORES: {op.contenedores} PZA
-                  {Number(op.contenedores) !== 1 ? "S" : ""} A COMODATO
-                </Text>
               </View>
             </View>
           ))}
@@ -308,6 +311,12 @@ export function DocumentoPDF({ cot }) {
           <View style={{ flex: 1.5 }}>
             {BASES.map((b, i) => (
               <Text key={i} style={styles.baseItem}>
+                • {b}
+              </Text>
+            ))}
+            {/* Bases personalizadas */}
+            {(cot.basesExtra || []).map((b, i) => (
+              <Text key={`extra-${i}`} style={styles.baseItem}>
                 • {b}
               </Text>
             ))}

@@ -1,7 +1,7 @@
 import { IVA } from './constantes'
 
-export function calcularOpcion(precio) {
-  const subtotal = Number(precio) || 0
+export function calcularOpcionServicio(precio_lista, diasRecoleccion) {
+  const subtotal = (Number(precio_lista) || 0) * (Number(diasRecoleccion) || 0)
   const iva      = subtotal * IVA
   const total    = subtotal + iva
   return { subtotal, iva, total }
@@ -14,10 +14,17 @@ export function formatMXN(n) {
   })
 }
 
-export function generarFolio() {
-  const año  = new Date().getFullYear()
-  const rand = String(Math.floor(Math.random() * 9000) + 1000)
-  return `COT-${año}-${rand}`
+const PREFIJOS = {
+  matriz:  'HMO',
+  guaymas: 'GYM',
+  obregon: 'OBR',
+}
+
+export function generarFolio(sucursalId = 'matriz') {
+  const año    = new Date().getFullYear()
+  const prefijo = PREFIJOS[sucursalId] || 'HMO'
+  const rand   = String(Math.floor(Math.random() * 9000) + 1000)
+  return `COT-${prefijo}-${año}-${rand}`
 }
 
 export function fechaHoy() {
@@ -59,4 +66,15 @@ export function estaVencida(fecha, vigencia) {
   fechaVence.setDate(fechaVence.getDate() + dias)
 
   return new Date() > fechaVence
+}
+
+export function calcularServicio({ precioUnitario, numContenedores, precioDia, diasSemana }) {
+  return (Number(precioUnitario) * Number(numContenedores)) + (Number(precioDia) * Number(diasSemana))
+}
+
+export function calcularTotalesOpcion(servicios) {
+  const subtotal = servicios.reduce((acc, srv) => acc + calcularServicio(srv), 0)
+  const iva      = subtotal * IVA
+  const total    = subtotal + iva
+  return { subtotal, iva, total }
 }

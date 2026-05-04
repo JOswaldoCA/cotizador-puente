@@ -7,6 +7,7 @@ import Cotizaciones from './pages/Cotizaciones'
 import PreviewCotizacion from './pages/PreviewCotizacion'
 import Login from './pages/Login'
 import Registro from './pages/Registro'
+import EditarCotizacion from './pages/EditarCotizacion'
 
 
 function RutaProtegida({ children }) {
@@ -25,6 +26,7 @@ export default function App() {
           <Route index element={<Dashboard />} />
           <Route path="nueva" element={<NuevaCotizacion />} />
           <Route path="cotizaciones" element={<Cotizaciones />} />
+          <Route path="cotizaciones/:folio/editar" element={<EditarCotizacion />} />  {/* ← agregar */}
         </Route>
         <Route path="/preview/:folio" element={<RutaProtegida><PreviewCotizacion /></RutaProtegida>} />
       </Routes>

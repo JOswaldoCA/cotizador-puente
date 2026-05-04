@@ -1,15 +1,18 @@
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
+import { useParams, useNavigate } from "react-router-dom";
 import { useCotizacion } from "../hooks/useCotizacion";
-import { SUCURSALES } from "../utils/constantes";
+import {
+  obtenerCotizacion,
+  guardarCotizacion,
+  actualizarCotizacion,
+} from "../services/cotizaciones";
 import {
   fechaHoy,
   calcularServicio,
   calcularTotalesOpcion,
+  estaVencida,
 } from "../utils/calculos";
-import { guardarCotizacion } from "../services/cotizaciones";
-import { obtenerClientes, obtenerServicios } from "../services/sqlserver";
 import ModalCotizacion from "../components/ModalCotizacion";
-import { useAuth } from "../hooks/useAuth";
 import BasesEditor from "../components/BasesEditor";
 
 const input =
@@ -19,15 +22,16 @@ const inputSm =
 const label = "text-xs font-medium text-gray-600 mb-1 block";
 const section = "bg-white rounded-xl border border-gray-200 overflow-hidden";
 const PAGOS = ["Mensual", "Trimestral", "Anual", "Por evento"];
-
 const btnCounter =
   "w-8 h-8 rounded-lg border border-gray-200 text-gray-600 hover:border-primary-600 hover:text-primary-600 font-bold flex items-center justify-center flex-shrink-0 text-base";
 
-export default function NuevaCotizacion() {
+export default function EditarCotizacion() {
+  const { folio: folioParam } = useParams();
+  const navigate = useNavigate();
+
   const {
-    folio,
-    sucursal,
-    setSucursal,
+    folio, // ← quita setFolio
+    sucursal, // ← quita setSucursal
     opciones, // ← quita setOpciones
     agregarOpcion,
     quitarOpcion,
@@ -36,50 +40,31 @@ export default function NuevaCotizacion() {
     actualizarServicio,
     cliente,
     setCliente,
+    cargarCotizacion,
     basesExtra,
     setBasesExtra,
   } = useCotizacion();
 
-  const { perfil } = useAuth();
-
   const [catalogoServicios, setCatalogoServicios] = useState([]);
-  const [clientes, setClientes] = useState([]);
-  const [clienteSeleccionado, setClienteSeleccionado] = useState("");
-  const [modalFolio, setModalFolio] = useState(null);
+  const [cargando, setCargando] = useState(true);
   const [guardando, setGuardando] = useState(false);
-  const [cargandoDB, setCargandoDB] = useState(true);
+  const [esVencida, setEsVencida] = useState(false);
+  const [modalFolio, setModalFolio] = useState(null);
 
   useEffect(() => {
-    if (perfil?.sucursal_id) {
-      const s = SUCURSALES.find((x) => x.id === perfil.sucursal_id);
-      if (s) setSucursal(s);
-    }
-  }, [perfil]);
-
-  useEffect(() => {
-    Promise.all([obtenerClientes(), obtenerServicios()])
-      .then(([c, s]) => {
-        setClientes(c);
-        setCatalogoServicios(s);
+    Promise.all([
+      obtenerCotizacion(folioParam),
+      import("../services/sqlserver").then((m) => m.obtenerServicios()),
+    ])
+      .then(([cot, servicios]) => {
+        if (!cot) return navigate("/cotizaciones");
+        cargarCotizacion(cot);
+        setCatalogoServicios(servicios);
+        setEsVencida(estaVencida(cot.fecha, cot.cliente?.vigencia));
       })
-      .catch(console.error)
-      .finally(() => setCargandoDB(false));
-  }, []);
+      .finally(() => setCargando(false));
+  }, [folioParam]);
 
-  const seleccionarCliente = (razonSocial) => {
-    setClienteSeleccionado(razonSocial);
-    if (!razonSocial) return;
-    const c = clientes.find((x) => x.razon_social?.trim() === razonSocial);
-    if (!c) return;
-    setCliente((p) => ({
-      ...p,
-      atencion: c.nom_comercial?.trim() || "",
-      contacto: c.razon_social?.trim() || "",
-      email: c.e_mail?.trim() || "",
-    }));
-  };
-
-  // Al seleccionar servicio del catálogo, prellenar precio
   const alSeleccionarServicio = (opId, srvId, nombre) => {
     const srv = catalogoServicios.find((s) => s.nombre === nombre);
     actualizarServicio(opId, srvId, {
@@ -92,25 +77,38 @@ export default function NuevaCotizacion() {
   const cambiarCampo = (opId, srvId, campo, valor) => {
     actualizarServicio(opId, srvId, { [campo]: Number(valor) || 0 });
   };
+
   const guardar = async () => {
     if (!cliente.atencion && !cliente.contacto)
       return alert("Escribe o selecciona el nombre del cliente.");
     setGuardando(true);
     try {
-      // Agregar totales calculados a cada opción antes de guardar
       const opcionesConTotales = opciones.map((op) => ({
         ...op,
         ...calcularTotalesOpcion(op.servicios),
       }));
-      await guardarCotizacion({
-        folio,
-        fecha: fechaHoy(),
-        sucursal,
-        cliente,
-        opciones: opcionesConTotales,
-        basesExtra,
-      });
-      setModalFolio(folio);
+
+      if (esVencida) {
+        // Generar nuevo folio
+        await guardarCotizacion({
+          folio, // ya tiene nuevo folio generado por cargarCotizacion en vencida
+          fecha: fechaHoy(),
+          sucursal,
+          cliente,
+          opciones: opcionesConTotales,
+          basesExtra,
+        });
+      } else {
+        // Sobreescribir misma cotización
+        await actualizarCotizacion({
+          folio: folioParam,
+          sucursal,
+          cliente,
+          opciones: opcionesConTotales,
+          basesExtra,
+        });
+      }
+      setModalFolio(esVencida ? folio : folioParam);
     } catch (e) {
       alert("Error al guardar: " + e.message);
     }
@@ -125,6 +123,13 @@ export default function NuevaCotizacion() {
     </div>
   );
 
+  if (cargando)
+    return (
+      <div className="flex justify-center py-20 text-gray-400 text-sm">
+        Cargando...
+      </div>
+    );
+
   return (
     <>
       <div className="max-w-3xl mx-auto flex flex-col gap-5">
@@ -132,15 +137,24 @@ export default function NuevaCotizacion() {
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-xl font-bold text-primary-600">
-              Nueva cotización
+              {esVencida ? "Renovar cotización" : "Editar cotización"}
             </h2>
             <p className="text-xs text-gray-400 font-mono mt-0.5">
-              Folio: {folio}
+              {esVencida
+                ? `Nueva desde: ${folioParam}`
+                : `Folio: ${folioParam}`}
             </p>
           </div>
-          <span className="text-xs bg-accent-300/40 text-primary-600 font-medium px-3 py-1.5 rounded-lg">
-            {fechaHoy()}
-          </span>
+          <div className="flex items-center gap-3">
+            {esVencida && (
+              <span className="text-xs bg-red-100 text-red-600 font-medium px-3 py-1.5 rounded-lg">
+                ⚠️ Vencida — se generará nuevo folio
+              </span>
+            )}
+            <span className="text-xs bg-accent-300/40 text-primary-600 font-medium px-3 py-1.5 rounded-lg">
+              {fechaHoy()}
+            </span>
+          </div>
         </div>
 
         {/* Sucursal */}
@@ -159,124 +173,77 @@ export default function NuevaCotizacion() {
         {/* Cliente */}
         <div className={section}>
           {sectionHeader("Datos del cliente")}
-          <div className="p-6 flex flex-col gap-4">
+          <div className="p-6 grid grid-cols-2 gap-4">
             <div>
-              <label className={label}>Buscar cliente existente</label>
+              <label className={label}>Atención a (negocio)</label>
+              <input
+                className={input}
+                value={cliente.atencion || ""}
+                onChange={(e) =>
+                  setCliente((p) => ({ ...p, atencion: e.target.value }))
+                }
+              />
+            </div>
+            <div>
+              <label className={label}>Contacto / Razón social</label>
+              <input
+                className={input}
+                value={cliente.contacto || ""}
+                onChange={(e) =>
+                  setCliente((p) => ({ ...p, contacto: e.target.value }))
+                }
+              />
+            </div>
+            <div>
+              <label className={label}>Vigencia</label>
               <select
                 className={input}
-                value={clienteSeleccionado}
-                onChange={(e) => seleccionarCliente(e.target.value)}
-                disabled={cargandoDB}
+                value={cliente.vigencia}
+                onChange={(e) =>
+                  setCliente((p) => ({ ...p, vigencia: e.target.value }))
+                }
               >
-                <option value="">
-                  {cargandoDB
-                    ? "Cargando clientes..."
-                    : "— Nuevo cliente / buscar —"}
-                </option>
-                {clientes.map((c, i) => (
-                  <option key={i} value={c.razon_social?.trim()}>
-                    {c.razon_social?.trim() || "Sin nombre"}
-                  </option>
+                {["1 MES", "15 DÍAS", "30 DÍAS"].map((v) => (
+                  <option key={v}>{v}</option>
                 ))}
               </select>
-              {clienteSeleccionado && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setClienteSeleccionado("");
-                    setCliente((p) => ({
-                      ...p,
-                      atencion: "",
-                      contacto: "",
-                      email: "",
-                    }));
-                  }}
-                  className="text-xs text-red-400 hover:text-red-600 mt-1"
-                >
-                  × Limpiar y capturar nuevo cliente
-                </button>
-              )}
             </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className={label}>Atención a (negocio) *</label>
-                <input
-                  className={input}
-                  placeholder="Nombre del negocio"
-                  value={cliente.atencion}
-                  onChange={(e) =>
-                    setCliente((p) => ({ ...p, atencion: e.target.value }))
-                  }
-                />
-              </div>
-              <div>
-                <label className={label}>Contacto / Razón social</label>
-                <input
-                  className={input}
-                  placeholder="Razón social"
-                  value={cliente.contacto || ""}
-                  onChange={(e) =>
-                    setCliente((p) => ({ ...p, contacto: e.target.value }))
-                  }
-                />
-              </div>
-              <div>
-                <label className={label}>Fecha de cotización</label>
-                <input className={input} value={fechaHoy()} readOnly />
-              </div>
-              <div>
-                <label className={label}>Vigencia</label>
-                <select
-                  className={input}
-                  value={cliente.vigencia}
-                  onChange={(e) =>
-                    setCliente((p) => ({ ...p, vigencia: e.target.value }))
-                  }
-                >
-                  {["1 MES", "15 DÍAS", "30 DÍAS"].map((v) => (
-                    <option key={v}>{v}</option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className={label}>Forma de pago</label>
-                <select
-                  className={input}
-                  value={cliente.pago || "Mensual"}
-                  onChange={(e) =>
-                    setCliente((p) => ({ ...p, pago: e.target.value }))
-                  }
-                >
-                  {PAGOS.map((p) => (
-                    <option key={p}>{p}</option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className={label}>Correo del cliente</label>
-                <input
-                  className={input}
-                  type="text"
-                  placeholder="correo1@mail.com; correo2@mail.com"
-                  value={cliente.email || ""}
-                  onChange={(e) =>
-                    setCliente((p) => ({ ...p, email: e.target.value }))
-                  }
-                />
-              </div>
-              <div className="col-span-2">
-                <label className={label}>Notas adicionales</label>
-                <textarea
-                  className={input}
-                  rows={3}
-                  placeholder="Observaciones, accesos especiales, horarios..."
-                  value={cliente.notas || ""}
-                  onChange={(e) =>
-                    setCliente((p) => ({ ...p, notas: e.target.value }))
-                  }
-                />
-              </div>
+            <div>
+              <label className={label}>Forma de pago</label>
+              <select
+                className={input}
+                value={cliente.pago || "Mensual"}
+                onChange={(e) =>
+                  setCliente((p) => ({ ...p, pago: e.target.value }))
+                }
+              >
+                {PAGOS.map((p) => (
+                  <option key={p}>{p}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className={label}>Correo del cliente</label>
+              <input
+                className={input}
+                type="text"
+                placeholder="correo1@mail.com; correo2@mail.com"
+                value={cliente.email || ""}
+                onChange={(e) =>
+                  setCliente((p) => ({ ...p, email: e.target.value }))
+                }
+              />
+            </div>
+            <div className="col-span-2">
+              <label className={label}>Notas adicionales</label>
+              <textarea
+                className={input}
+                rows={3}
+                value={cliente.notas || ""}
+                onChange={(e) =>
+                  setCliente((p) => ({ ...p, notas: e.target.value }))
+                }
+              />
             </div>
           </div>
         </div>
@@ -294,7 +261,6 @@ export default function NuevaCotizacion() {
                   key={op.id}
                   className="border border-gray-200 rounded-xl overflow-hidden"
                 >
-                  {/* Header opción */}
                   <div className="flex items-center justify-between px-4 py-3 bg-gray-50 border-b border-gray-200">
                     <div className="flex items-center gap-2">
                       <div className="w-6 h-6 rounded-full bg-primary-600 flex items-center justify-center text-white text-xs font-bold">
@@ -315,7 +281,6 @@ export default function NuevaCotizacion() {
                     )}
                   </div>
 
-                  {/* Servicios */}
                   <div className="divide-y divide-gray-100">
                     {op.servicios.map((srv, srvIdx) => {
                       const lineTotal = calcularServicio(srv);
@@ -335,14 +300,12 @@ export default function NuevaCotizacion() {
                               </button>
                             )}
                           </div>
-
                           <div className="grid grid-cols-2 gap-3">
-                            {/* Concepto */}
                             <div className="col-span-2">
                               <label className={label}>Concepto</label>
                               <select
                                 className={inputSm}
-                                value={srv.servicioId || ""}
+                                value={srv.nombre || ""}
                                 onChange={(e) =>
                                   alSeleccionarServicio(
                                     op.id,
@@ -350,12 +313,9 @@ export default function NuevaCotizacion() {
                                     e.target.value,
                                   )
                                 }
-                                disabled={cargandoDB}
                               >
                                 <option value="">
-                                  {cargandoDB
-                                    ? "Cargando..."
-                                    : "— Seleccionar servicio —"}
+                                  — Seleccionar servicio —
                                 </option>
                                 {catalogoServicios.map((s, i) => (
                                   <option key={i} value={s.nombre}>
@@ -364,8 +324,6 @@ export default function NuevaCotizacion() {
                                 ))}
                               </select>
                             </div>
-
-                            {/* Precio unitario */}
                             <div>
                               <label className={label}>
                                 Precio unitario ($)
@@ -375,7 +333,6 @@ export default function NuevaCotizacion() {
                                 type="number"
                                 min="0"
                                 step="0.01"
-                                placeholder="0.00"
                                 value={srv.precioUnitario || ""}
                                 onChange={(e) =>
                                   cambiarCampo(
@@ -387,8 +344,6 @@ export default function NuevaCotizacion() {
                                 }
                               />
                             </div>
-
-                            {/* Núm contenedores */}
                             <div>
                               <label className={label}>N° contenedores</label>
                               <div className="flex items-center gap-1.5">
@@ -436,8 +391,6 @@ export default function NuevaCotizacion() {
                                 </button>
                               </div>
                             </div>
-
-                            {/* Precio por día */}
                             <div>
                               <label className={label}>
                                 Precio por día ($)
@@ -447,7 +400,6 @@ export default function NuevaCotizacion() {
                                 type="number"
                                 min="0"
                                 step="0.01"
-                                placeholder="0.00"
                                 value={srv.precioDia || ""}
                                 onChange={(e) =>
                                   cambiarCampo(
@@ -459,8 +411,6 @@ export default function NuevaCotizacion() {
                                 }
                               />
                             </div>
-
-                            {/* Visitas por semana */}
                             <div>
                               <label className={label}>
                                 Visitas por semana
@@ -511,8 +461,6 @@ export default function NuevaCotizacion() {
                                 </button>
                               </div>
                             </div>
-
-                            {/* Total línea */}
                             <div className="col-span-2 flex justify-end">
                               <span className="text-xs text-gray-400">
                                 Subtotal línea:{" "}
@@ -530,7 +478,6 @@ export default function NuevaCotizacion() {
                     })}
                   </div>
 
-                  {/* Agregar servicio */}
                   <div className="px-4 pb-3">
                     <button
                       type="button"
@@ -541,7 +488,6 @@ export default function NuevaCotizacion() {
                     </button>
                   </div>
 
-                  {/* Totales opción */}
                   <div className="grid grid-cols-3 divide-x divide-gray-200 border-t border-gray-200">
                     {[
                       { l: "Subtotal", v: subtotal },
@@ -588,22 +534,35 @@ export default function NuevaCotizacion() {
           </div>
         </div>
 
-        {/* Guardar */}
-        <button
-          type="button"
-          onClick={guardar}
-          disabled={guardando}
-          className="w-full bg-primary-600 hover:bg-primary-800 disabled:opacity-50 text-white font-semibold text-sm py-3.5 rounded-xl transition-colors flex items-center justify-center gap-2"
-        >
-          {guardando ? "Guardando..." : "💾 Guardar cotización"}
-        </button>
+        {/* Botones */}
+        <div className="flex gap-3">
+          <button
+            type="button"
+            onClick={() => navigate("/cotizaciones")}
+            className="flex-1 border border-gray-200 text-gray-600 font-semibold text-sm py-3.5 rounded-xl hover:bg-gray-50 transition-colors"
+          >
+            Cancelar
+          </button>
+          <button
+            type="button"
+            onClick={guardar}
+            disabled={guardando}
+            className="flex-1 bg-primary-600 hover:bg-primary-800 disabled:opacity-50 text-white font-semibold text-sm py-3.5 rounded-xl transition-colors"
+          >
+            {guardando
+              ? "Guardando..."
+              : esVencida
+                ? "📋 Generar nueva cotización"
+                : "💾 Guardar cambios"}
+          </button>
+        </div>
       </div>
 
       {modalFolio && (
         <ModalCotizacion
           folio={modalFolio}
           emailCliente={cliente.email || ""}
-          onCerrar={() => setModalFolio(null)}
+          onCerrar={() => navigate("/cotizaciones")} // ← Cerrar va al historial
         />
       )}
     </>

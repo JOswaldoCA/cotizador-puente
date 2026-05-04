@@ -264,6 +264,7 @@ export default function PreviewCotizacion() {
           <tbody>
             {opciones.map((op, i) => (
               <>
+                {/* Header opción */}
                 <tr key={`title-${i}`}>
                   <td
                     colSpan={3}
@@ -279,56 +280,62 @@ export default function PreviewCotizacion() {
                     OPCION {i + 1}
                   </td>
                 </tr>
-                <tr key={`svc-${i}`}>
+
+                {/* Servicios de la opción */}
+                {(op.servicios || []).map((srv, si) => (
+                  <tr key={`srv-${i}-${si}`}>
+                    <td
+                      style={{
+                        border: "1px solid #ccc",
+                        padding: "3px 8px",
+                        fontSize: 10.5,
+                      }}
+                    >
+                      <strong>{srv.nombre?.toUpperCase() || "SERVICIO"}</strong>
+                      {" — "}
+                      {srv.numContenedores} PZA
+                      {Number(srv.numContenedores) !== 1 ? "S" : ""} A COMODATO
+                      {" — "}
+                      {srv.diasSemana} VISITA
+                      {Number(srv.diasSemana) !== 1 ? "S" : ""}/SEMANA
+                    </td>
+                    <td
+                      style={{
+                        border: "1px solid #ccc",
+                        padding: "3px 8px",
+                        fontSize: 10,
+                        textAlign: "right",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      SUBTOTAL $
+                    </td>
+                    <td
+                      style={{
+                        border: "1px solid #ccc",
+                        padding: "3px 8px",
+                        fontSize: 10,
+                        textAlign: "right",
+                        minWidth: 70,
+                      }}
+                    >
+                      {(
+                        srv.precioUnitario * srv.numContenedores +
+                        srv.precioDia * srv.diasSemana
+                      ).toLocaleString("es-MX", { minimumFractionDigits: 2 })}
+                    </td>
+                  </tr>
+                ))}
+
+                {/* Totales opción */}
+                <tr key={`iva-${i}`}>
                   <td
                     style={{
                       border: "1px solid #ccc",
                       padding: "3px 8px",
                       fontSize: 10.5,
                     }}
-                  >
-                    <strong>
-                      SERVICIO DE RECOLECCION DE BASURA (RSU) ** PRECIOS{" "}
-                      {new Date().getFullYear()}
-                    </strong>
-                  </td>
-                  <td
-                    style={{
-                      border: "1px solid #ccc",
-                      padding: "3px 8px",
-                      fontSize: 10,
-                      textAlign: "right",
-                      whiteSpace: "nowrap",
-                    }}
-                  >
-                    SUBTOTAL $
-                  </td>
-                  <td
-                    style={{
-                      border: "1px solid #ccc",
-                      padding: "3px 8px",
-                      fontSize: 10,
-                      textAlign: "right",
-                      whiteSpace: "nowrap",
-                      minWidth: 70,
-                    }}
-                  >
-                    {op.subtotal.toLocaleString("es-MX", {
-                      minimumFractionDigits: 2,
-                    })}
-                  </td>
-                </tr>
-                <tr key={`freq-${i}`}>
-                  <td
-                    style={{
-                      border: "1px solid #ccc",
-                      padding: "3px 8px",
-                      fontSize: 10.5,
-                    }}
-                  >
-                    <strong>DIAS DE RECOLECCION:</strong>{" "}
-                    {op.frecuencia.toUpperCase()}
-                  </td>
+                  ></td>
                   <td
                     style={{
                       border: "1px solid #ccc",
@@ -347,22 +354,19 @@ export default function PreviewCotizacion() {
                       textAlign: "right",
                     }}
                   >
-                    {op.iva.toLocaleString("es-MX", {
+                    {(op.iva || 0).toLocaleString("es-MX", {
                       minimumFractionDigits: 2,
                     })}
                   </td>
                 </tr>
-                <tr key={`cap-${i}`}>
+                <tr key={`total-${i}`}>
                   <td
                     style={{
                       border: "1px solid #ccc",
                       padding: "3px 8px",
                       fontSize: 10.5,
                     }}
-                  >
-                    <strong>CAPACIDAD DE CONTENEDOR:</strong>{" "}
-                    {op.capacidad.toUpperCase()}
-                  </td>
+                  ></td>
                   <td
                     style={{
                       border: "1px solid #ccc",
@@ -383,22 +387,9 @@ export default function PreviewCotizacion() {
                       fontWeight: 700,
                     }}
                   >
-                    {op.total.toLocaleString("es-MX", {
+                    {(op.total || 0).toLocaleString("es-MX", {
                       minimumFractionDigits: 2,
                     })}
-                  </td>
-                </tr>
-                <tr key={`cont-${i}`}>
-                  <td
-                    colSpan={3}
-                    style={{
-                      border: "1px solid #ccc",
-                      padding: "3px 8px",
-                      fontSize: 10.5,
-                    }}
-                  >
-                    <strong>CONTENEDORES:</strong> {op.contenedores} PZA
-                    {Number(op.contenedores) !== 1 ? "S" : ""} A COMODATO
                   </td>
                 </tr>
               </>
@@ -445,6 +436,10 @@ export default function PreviewCotizacion() {
               >
                 {BASES.map((b, i) => (
                   <div key={i}>• {b}</div>
+                ))}
+                {/* Bases personalizadas */}
+                {(cot.basesExtra || []).map((b, i) => (
+                  <div key={`extra-${i}`}>• {b}</div>
                 ))}
               </td>
               <td
