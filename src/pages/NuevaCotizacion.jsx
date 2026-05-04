@@ -13,22 +13,33 @@ import { useAuth } from "../hooks/useAuth";
 import BasesEditor from "../components/BasesEditor";
 
 const input =
-  "border border-gray-200 rounded-lg px-3 py-2.5 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-primary-600 w-full bg-white";
+  "border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-primary-600/20 focus:border-primary-600 w-full bg-white transition-all duration-200";
 const inputSm =
-  "border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-primary-600 w-full bg-white";
-const label = "text-xs font-medium text-gray-600 mb-1 block";
-const section = "bg-white rounded-xl border border-gray-200 overflow-hidden";
+  "border border-gray-200 rounded-xl px-3 py-2 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-primary-600/20 focus:border-primary-600 w-full bg-white transition-all duration-200";
+const label =
+  "text-xs font-semibold text-gray-500 mb-1.5 block uppercase tracking-wide";
 const PAGOS = ["Mensual", "Trimestral", "Anual", "Por evento"];
-
 const btnCounter =
-  "w-8 h-8 rounded-lg border border-gray-200 text-gray-600 hover:border-primary-600 hover:text-primary-600 font-bold flex items-center justify-center flex-shrink-0 text-base";
+  "w-9 h-9 rounded-xl border border-gray-200 text-gray-500 hover:border-primary-600 hover:text-primary-600 hover:bg-primary-50 font-bold flex items-center justify-center flex-shrink-0 transition-all duration-200";
+
+const SectionHeader = ({ title, icon }) => (
+  <div
+    className="px-6 py-4 border-b border-white/10 flex items-center gap-3"
+    style={{ background: "linear-gradient(135deg, #1B3A6B 0%, #0F2347 100%)" }}
+  >
+    {icon && <span className="text-lg">{icon}</span>}
+    <h2 className="text-xs font-bold text-amber-300 uppercase tracking-widest">
+      {title}
+    </h2>
+  </div>
+);
 
 export default function NuevaCotizacion() {
   const {
     folio,
     sucursal,
     setSucursal,
-    opciones, // ← quita setOpciones
+    opciones,
     agregarOpcion,
     quitarOpcion,
     agregarServicio,
@@ -79,7 +90,6 @@ export default function NuevaCotizacion() {
     }));
   };
 
-  // Al seleccionar servicio del catálogo, prellenar precio
   const alSeleccionarServicio = (opId, srvId, nombre) => {
     const srv = catalogoServicios.find((s) => s.nombre === nombre);
     actualizarServicio(opId, srvId, {
@@ -92,12 +102,12 @@ export default function NuevaCotizacion() {
   const cambiarCampo = (opId, srvId, campo, valor) => {
     actualizarServicio(opId, srvId, { [campo]: Number(valor) || 0 });
   };
+
   const guardar = async () => {
     if (!cliente.atencion && !cliente.contacto)
       return alert("Escribe o selecciona el nombre del cliente.");
     setGuardando(true);
     try {
-      // Agregar totales calculados a cada opción antes de guardar
       const opcionesConTotales = opciones.map((op) => ({
         ...op,
         ...calcularTotalesOpcion(op.servicios),
@@ -117,49 +127,65 @@ export default function NuevaCotizacion() {
     setGuardando(false);
   };
 
-  const sectionHeader = (title) => (
-    <div className="px-6 py-4 border-b border-gray-100 bg-primary-600">
-      <h2 className="text-xs font-semibold text-accent-400 uppercase tracking-widest">
-        {title}
-      </h2>
-    </div>
-  );
-
   return (
     <>
-      <div className="max-w-3xl mx-auto flex flex-col gap-5">
+      <div className="max-w-3xl mx-auto flex flex-col gap-6">
         {/* Título */}
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-xl font-bold text-primary-600">
+            <h2 className="text-2xl font-bold text-primary-600 tracking-tight">
               Nueva cotización
             </h2>
             <p className="text-xs text-gray-400 font-mono mt-0.5">
-              Folio: {folio}
+              Folio:{" "}
+              <span className="text-primary-600 font-semibold">{folio}</span>
             </p>
           </div>
-          <span className="text-xs bg-accent-300/40 text-primary-600 font-medium px-3 py-1.5 rounded-lg">
-            {fechaHoy()}
-          </span>
+          <div className="flex items-center gap-3">
+            <span
+              className="text-xs font-semibold px-3 py-1.5 rounded-xl border"
+              style={{
+                background: "rgba(255,215,0,0.1)",
+                borderColor: "rgba(255,215,0,0.3)",
+                color: "#92700a",
+              }}
+            >
+              📅 {fechaHoy()}
+            </span>
+          </div>
         </div>
 
         {/* Sucursal */}
-        <div className="flex items-center gap-3 bg-primary-50 border border-primary-100 rounded-xl px-4 py-3">
-          <div className="w-8 h-8 rounded-lg bg-primary-600 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
+        <div
+          className="flex items-center gap-4 rounded-2xl px-5 py-4 border"
+          style={{
+            background: "linear-gradient(135deg, #EEF2FF, #DBEAFE)",
+            borderColor: "rgba(27,58,107,0.15)",
+            boxShadow: "0 1px 3px rgba(27,58,107,0.06)",
+          }}
+        >
+          <div
+            className="w-10 h-10 rounded-xl flex items-center justify-center text-xl flex-shrink-0"
+            style={{ background: "linear-gradient(135deg, #1B3A6B, #0F2347)" }}
+          >
             🏢
           </div>
           <div>
-            <p className="text-xs font-semibold text-primary-600">
+            <p className="text-sm font-bold text-primary-600">
               {sucursal?.tipo}
             </p>
-            <p className="text-xs text-gray-400">{sucursal?.ciudad}</p>
+            <p className="text-xs text-gray-500 mt-0.5">{sucursal?.ciudad}</p>
           </div>
         </div>
 
         {/* Cliente */}
-        <div className={section}>
-          {sectionHeader("Datos del cliente")}
-          <div className="p-6 flex flex-col gap-4">
+        <div
+          className="bg-white rounded-2xl border border-gray-100 overflow-hidden"
+          style={{ boxShadow: "0 1px 3px rgba(27,58,107,0.06)" }}
+        >
+          <SectionHeader title="Datos del cliente" icon="👤" />
+          <div className="p-6 flex flex-col gap-5">
+            {/* Buscador */}
             <div>
               <label className={label}>Buscar cliente existente</label>
               <select
@@ -170,7 +196,7 @@ export default function NuevaCotizacion() {
               >
                 <option value="">
                   {cargandoDB
-                    ? "Cargando clientes..."
+                    ? "⏳ Cargando clientes..."
                     : "— Nuevo cliente / buscar —"}
                 </option>
                 {clientes.map((c, i) => (
@@ -191,7 +217,7 @@ export default function NuevaCotizacion() {
                       email: "",
                     }));
                   }}
-                  className="text-xs text-red-400 hover:text-red-600 mt-1"
+                  className="text-xs text-red-400 hover:text-red-600 mt-1.5 flex items-center gap-1 font-medium"
                 >
                   × Limpiar y capturar nuevo cliente
                 </button>
@@ -223,7 +249,12 @@ export default function NuevaCotizacion() {
               </div>
               <div>
                 <label className={label}>Fecha de cotización</label>
-                <input className={input} value={fechaHoy()} readOnly />
+                <input
+                  className={input}
+                  value={fechaHoy()}
+                  readOnly
+                  style={{ background: "#F8FAFF", color: "#6B7280" }}
+                />
               </div>
               <div>
                 <label className={label}>Vigencia</label>
@@ -281,10 +312,13 @@ export default function NuevaCotizacion() {
           </div>
         </div>
 
-        {/* Opciones */}
-        <div className={section}>
-          {sectionHeader("Conceptos de servicio")}
-          <div className="p-6 flex flex-col gap-6">
+        {/* Opciones de servicio */}
+        <div
+          className="bg-white rounded-2xl border border-gray-100 overflow-hidden"
+          style={{ boxShadow: "0 1px 3px rgba(27,58,107,0.06)" }}
+        >
+          <SectionHeader title="Conceptos de servicio" icon="📦" />
+          <div className="p-6 flex flex-col gap-5">
             {opciones.map((op, opIdx) => {
               const { subtotal, iva, total } = calcularTotalesOpcion(
                 op.servicios,
@@ -292,15 +326,27 @@ export default function NuevaCotizacion() {
               return (
                 <div
                   key={op.id}
-                  className="border border-gray-200 rounded-xl overflow-hidden"
+                  className="border border-gray-200 rounded-2xl overflow-hidden"
+                  style={{ boxShadow: "0 1px 3px rgba(27,58,107,0.04)" }}
                 >
                   {/* Header opción */}
-                  <div className="flex items-center justify-between px-4 py-3 bg-gray-50 border-b border-gray-200">
-                    <div className="flex items-center gap-2">
-                      <div className="w-6 h-6 rounded-full bg-primary-600 flex items-center justify-center text-white text-xs font-bold">
+                  <div
+                    className="flex items-center justify-between px-5 py-3.5 border-b border-gray-100"
+                    style={{
+                      background: "linear-gradient(135deg, #F8FAFF, #EEF2FF)",
+                    }}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div
+                        className="w-7 h-7 rounded-xl flex items-center justify-center text-white text-xs font-bold"
+                        style={{
+                          background:
+                            "linear-gradient(135deg, #1B3A6B, #0F2347)",
+                        }}
+                      >
                         {opIdx + 1}
                       </div>
-                      <span className="text-sm font-semibold text-primary-600">
+                      <span className="text-sm font-bold text-primary-600 tracking-wide">
                         OPCIÓN {opIdx + 1}
                       </span>
                     </div>
@@ -308,28 +354,33 @@ export default function NuevaCotizacion() {
                       <button
                         type="button"
                         onClick={() => quitarOpcion(op.id)}
-                        className="text-xs text-red-400 hover:text-red-600"
+                        className="text-xs text-red-400 hover:text-red-600 font-medium px-3 py-1 rounded-lg hover:bg-red-50 transition-colors"
                       >
-                        Eliminar opción
+                        × Eliminar opción
                       </button>
                     )}
                   </div>
 
                   {/* Servicios */}
-                  <div className="divide-y divide-gray-100">
+                  <div className="divide-y divide-gray-50">
                     {op.servicios.map((srv, srvIdx) => {
                       const lineTotal = calcularServicio(srv);
                       return (
-                        <div key={srv.id} className="p-4">
-                          <div className="flex items-center justify-between mb-3">
-                            <span className="text-xs font-semibold text-gray-400 uppercase tracking-wide">
-                              Servicio {srvIdx + 1}
-                            </span>
+                        <div key={srv.id} className="p-5">
+                          <div className="flex items-center justify-between mb-4">
+                            <div className="flex items-center gap-2">
+                              <div className="w-5 h-5 rounded-lg bg-gray-100 flex items-center justify-center text-xs font-bold text-gray-500">
+                                {srvIdx + 1}
+                              </div>
+                              <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">
+                                Servicio {srvIdx + 1}
+                              </span>
+                            </div>
                             {op.servicios.length > 1 && (
                               <button
                                 type="button"
                                 onClick={() => quitarServicio(op.id, srv.id)}
-                                className="text-xs text-red-400 hover:text-red-600"
+                                className="text-xs text-red-400 hover:text-red-600 font-medium px-2 py-1 rounded-lg hover:bg-red-50 transition-colors"
                               >
                                 × Quitar
                               </button>
@@ -337,9 +388,10 @@ export default function NuevaCotizacion() {
                           </div>
 
                           <div className="grid grid-cols-2 gap-3">
-                            {/* Concepto */}
                             <div className="col-span-2">
-                              <label className={label}>Concepto</label>
+                              <label className={label}>
+                                Concepto de servicio
+                              </label>
                               <select
                                 className={inputSm}
                                 value={srv.servicioId || ""}
@@ -365,7 +417,6 @@ export default function NuevaCotizacion() {
                               </select>
                             </div>
 
-                            {/* Precio unitario */}
                             <div>
                               <label className={label}>
                                 Precio unitario ($)
@@ -388,7 +439,6 @@ export default function NuevaCotizacion() {
                               />
                             </div>
 
-                            {/* Núm contenedores */}
                             <div>
                               <label className={label}>N° contenedores</label>
                               <div className="flex items-center gap-1.5">
@@ -407,7 +457,9 @@ export default function NuevaCotizacion() {
                                   −
                                 </button>
                                 <input
-                                  className={inputSm + " text-center"}
+                                  className={
+                                    inputSm + " text-center font-semibold"
+                                  }
                                   type="number"
                                   min="1"
                                   value={srv.numContenedores}
@@ -437,7 +489,6 @@ export default function NuevaCotizacion() {
                               </div>
                             </div>
 
-                            {/* Precio por día */}
                             <div>
                               <label className={label}>
                                 Precio por día ($)
@@ -460,7 +511,6 @@ export default function NuevaCotizacion() {
                               />
                             </div>
 
-                            {/* Visitas por semana */}
                             <div>
                               <label className={label}>
                                 Visitas por semana
@@ -481,7 +531,9 @@ export default function NuevaCotizacion() {
                                   −
                                 </button>
                                 <input
-                                  className={inputSm + " text-center"}
+                                  className={
+                                    inputSm + " text-center font-semibold"
+                                  }
                                   type="number"
                                   min="1"
                                   max="7"
@@ -512,17 +564,19 @@ export default function NuevaCotizacion() {
                               </div>
                             </div>
 
-                            {/* Total línea */}
-                            <div className="col-span-2 flex justify-end">
-                              <span className="text-xs text-gray-400">
-                                Subtotal línea:{" "}
-                              </span>
-                              <span className="text-xs font-bold text-primary-600 ml-1">
-                                $
-                                {lineTotal.toLocaleString("es-MX", {
-                                  minimumFractionDigits: 2,
-                                })}
-                              </span>
+                            {/* Subtotal línea */}
+                            <div className="col-span-2">
+                              <div className="flex items-center justify-end gap-2 bg-gray-50 rounded-xl px-4 py-2.5 border border-gray-100">
+                                <span className="text-xs text-gray-400 font-medium">
+                                  Subtotal línea:
+                                </span>
+                                <span className="text-sm font-bold text-primary-600 font-mono">
+                                  $
+                                  {lineTotal.toLocaleString("es-MX", {
+                                    minimumFractionDigits: 2,
+                                  })}
+                                </span>
+                              </div>
                             </div>
                           </div>
                         </div>
@@ -531,18 +585,18 @@ export default function NuevaCotizacion() {
                   </div>
 
                   {/* Agregar servicio */}
-                  <div className="px-4 pb-3">
+                  <div className="px-5 pb-4">
                     <button
                       type="button"
                       onClick={() => agregarServicio(op.id)}
-                      className="w-full border border-dashed border-gray-300 hover:border-primary-600 text-gray-400 hover:text-primary-600 text-xs font-medium py-2 rounded-lg transition-colors"
+                      className="w-full border-2 border-dashed border-gray-200 hover:border-primary-600 text-gray-400 hover:text-primary-600 text-xs font-semibold py-2.5 rounded-xl transition-all duration-200 hover:bg-primary-50"
                     >
                       + Agregar servicio
                     </button>
                   </div>
 
                   {/* Totales opción */}
-                  <div className="grid grid-cols-3 divide-x divide-gray-200 border-t border-gray-200">
+                  <div className="grid grid-cols-3 divide-x divide-gray-100 border-t border-gray-100">
                     {[
                       { l: "Subtotal", v: subtotal },
                       { l: "IVA 16%", v: iva },
@@ -550,11 +604,21 @@ export default function NuevaCotizacion() {
                     ].map(({ l, v, highlight }) => (
                       <div
                         key={l}
-                        className={`text-center py-3 px-2 ${highlight ? "bg-primary-50" : ""}`}
+                        className={`text-center py-4 px-2 ${highlight ? "" : ""}`}
+                        style={
+                          highlight
+                            ? {
+                                background:
+                                  "linear-gradient(135deg, #EEF2FF, #DBEAFE)",
+                              }
+                            : {}
+                        }
                       >
-                        <p className="text-xs text-gray-400">{l}</p>
+                        <p className="text-xs text-gray-400 font-medium mb-1">
+                          {l}
+                        </p>
                         <p
-                          className={`text-sm font-bold ${highlight ? "text-primary-600" : "text-gray-700"}`}
+                          className={`text-sm font-bold font-mono ${highlight ? "text-primary-600" : "text-gray-700"}`}
                         >
                           $
                           {(v || 0).toLocaleString("es-MX", {
@@ -571,15 +635,19 @@ export default function NuevaCotizacion() {
             <button
               type="button"
               onClick={agregarOpcion}
-              className="w-full border-2 border-dashed border-gray-300 hover:border-primary-600 text-gray-400 hover:text-primary-600 text-sm font-medium py-3 rounded-xl transition-colors"
+              className="w-full border-2 border-dashed border-gray-200 hover:border-primary-600 text-gray-400 hover:text-primary-600 text-sm font-semibold py-4 rounded-2xl transition-all duration-200 hover:bg-primary-50"
             >
               + Agregar opción
             </button>
           </div>
         </div>
 
-        <div className={section}>
-          {sectionHeader("Bases de la cotización")}
+        {/* Bases */}
+        <div
+          className="bg-white rounded-2xl border border-gray-100 overflow-hidden"
+          style={{ boxShadow: "0 1px 3px rgba(27,58,107,0.06)" }}
+        >
+          <SectionHeader title="Bases de la cotización" icon="📄" />
           <div className="p-6">
             <BasesEditor
               basesExtra={basesExtra}
@@ -588,14 +656,27 @@ export default function NuevaCotizacion() {
           </div>
         </div>
 
-        {/* Guardar */}
+        {/* Botón guardar */}
         <button
           type="button"
           onClick={guardar}
           disabled={guardando}
-          className="w-full bg-primary-600 hover:bg-primary-800 disabled:opacity-50 text-white font-semibold text-sm py-3.5 rounded-xl transition-colors flex items-center justify-center gap-2"
+          className="w-full text-white font-bold text-sm py-4 rounded-2xl transition-all duration-200 disabled:opacity-50 flex items-center justify-center gap-2"
+          style={{
+            background: guardando
+              ? "#6B7280"
+              : "linear-gradient(135deg, #1B3A6B 0%, #0F2347 100%)",
+            boxShadow: guardando ? "none" : "0 4px 16px rgba(27,58,107,0.3)",
+          }}
         >
-          {guardando ? "Guardando..." : "💾 Guardar cotización"}
+          {guardando ? (
+            <>
+              <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+              Guardando...
+            </>
+          ) : (
+            <>💾 Guardar cotización</>
+          )}
         </button>
       </div>
 

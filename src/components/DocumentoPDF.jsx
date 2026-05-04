@@ -10,74 +10,91 @@ import { BASES } from "../utils/constantes";
 import { logoBase64 } from "../assets/logoBase64";
 
 const styles = StyleSheet.create({
-  page: { fontFamily: "Helvetica", fontSize: 10, padding: 28, color: "#111" },
-  divider: { borderBottom: "1px solid #e5e7eb", marginBottom: 8 },
+  page: {
+    fontFamily: "Helvetica",
+    fontSize: 10,
+    padding: 30,
+    color: "#111",
+    backgroundColor: "#ffffff",
+  },
+
+  // Encabezado
+  divider: { borderBottom: "2px solid #1B3A6B", marginBottom: 10 },
+  dividerLight: { borderBottom: "1px solid #e5e7eb", marginBottom: 8 },
+
+  // Folio / fecha
   fechaRow: {
     flexDirection: "row",
     justifyContent: "flex-end",
-    marginBottom: 4,
+    marginBottom: 3,
   },
-  fechaBox: { flexDirection: "row", border: "1px solid #ccc", fontSize: 9 },
+  fechaBox: { flexDirection: "row", border: "1px solid #d1d5db", fontSize: 9 },
   fechaLabel: {
     padding: "3 8",
-    backgroundColor: "#f3f4f6",
+    backgroundColor: "#EEF2FF",
     fontFamily: "Helvetica-Bold",
+    color: "#1B3A6B",
   },
-  fechaValor: { padding: "3 8" },
+  fechaValor: { padding: "3 8", backgroundColor: "#ffffff" },
+
+  // Atención
   atencion: {
     fontSize: 10,
     fontFamily: "Helvetica-Bold",
     color: "#1B3A6B",
     marginBottom: 2,
-    borderBottom: "1px solid #ccc",
+    borderBottom: "1px solid #d1d5db",
     paddingBottom: 4,
   },
   contacto: {
     fontSize: 9,
-    marginBottom: 8,
-    borderBottom: "1px solid #ccc",
+    color: "#374151",
+    marginBottom: 10,
+    borderBottom: "1px solid #d1d5db",
     paddingBottom: 4,
   },
-  intro: { fontSize: 9, lineHeight: 1.6, marginBottom: 8, color: "#444" },
-  cotLabel: { fontSize: 10, fontFamily: "Helvetica-Bold", marginBottom: 3 },
-  cotTexto: { fontSize: 9, lineHeight: 1.6, marginBottom: 8, color: "#444" },
+
+  // Texto
+  intro: { fontSize: 9, lineHeight: 1.6, marginBottom: 8, color: "#4B5563" },
+  cotLabel: {
+    fontSize: 10,
+    fontFamily: "Helvetica-Bold",
+    marginBottom: 3,
+    color: "#1B3A6B",
+  },
+  cotTexto: { fontSize: 9, lineHeight: 1.6, marginBottom: 8, color: "#4B5563" },
+
+  // Tabla
+  border: { border: "1px solid #d1d5db" },
   tableHeader: { flexDirection: "row", backgroundColor: "#FFD700" },
   tableHeaderCell: {
-    padding: "5 8",
+    padding: "6 8",
     fontFamily: "Helvetica-Bold",
     fontSize: 9,
     color: "#1B3A6B",
     flex: 1,
-    borderRight: "1px solid #ccc",
+    borderRight: "1px solid #B8860B",
   },
   opcionTitle: {
-    padding: "4 8",
-    backgroundColor: "#f0f0f0",
+    padding: "5 8",
+    backgroundColor: "#1B3A6B",
     textAlign: "center",
     fontFamily: "Helvetica-Bold",
     fontSize: 9,
-    borderBottom: "1px solid #ccc",
-    borderTop: "1px solid #ccc",
+    color: "#FFD700",
+    letterSpacing: 1,
   },
-  row: { flexDirection: "row", borderBottom: "1px solid #e5e7eb" },
-  cell: {
-    padding: "3 8",
-    fontSize: 9,
-    flex: 1,
-    borderRight: "1px solid #e5e7eb",
-  },
-  basesTitle: {
-    fontSize: 9,
-    fontFamily: "Helvetica-Bold",
-    marginTop: 10,
-    marginBottom: 4,
-  },
-  baseItem: { fontSize: 8, color: "#555", marginBottom: 2, lineHeight: 1.4 },
-  border: { border: "1px solid #ccc" },
   srvRow: {
     flexDirection: "row",
     borderBottom: "1px solid #e5e7eb",
     backgroundColor: "#fafafa",
+  },
+  cell: {
+    padding: "4 8",
+    fontSize: 9,
+    flex: 1,
+    borderRight: "1px solid #e5e7eb",
+    color: "#374151",
   },
   totalRow: {
     flexDirection: "row",
@@ -85,6 +102,39 @@ const styles = StyleSheet.create({
     padding: "2 8",
     borderBottom: "1px solid #e5e7eb",
   },
+  netoRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    padding: "3 8",
+    backgroundColor: "#EEF2FF",
+  },
+
+  // Bases
+  basesTitle: {
+    fontSize: 9,
+    fontFamily: "Helvetica-Bold",
+    marginTop: 10,
+    marginBottom: 4,
+    color: "#1B3A6B",
+  },
+  baseItem: { fontSize: 8, color: "#555", marginBottom: 2, lineHeight: 1.4 },
+  baseItemExtra: {
+    fontSize: 8,
+    color: "#1B3A6B",
+    marginBottom: 2,
+    lineHeight: 1.4,
+    fontFamily: "Helvetica-Bold",
+  },
+
+  // Footer
+  footer: {
+    borderTop: "2px solid #1B3A6B",
+    marginTop: 14,
+    paddingTop: 6,
+    flexDirection: "row",
+    justifyContent: "center",
+  },
+  footerText: { fontSize: 7, color: "#9CA3AF", textAlign: "center" },
 });
 
 const fmt = (n) =>
@@ -125,7 +175,7 @@ export function DocumentoPDF({ cot }) {
             <Text
               style={{
                 fontSize: 8,
-                color: "#333",
+                color: "#4B5563",
                 textAlign: "right",
                 lineHeight: 1.6,
               }}
@@ -146,7 +196,15 @@ export function DocumentoPDF({ cot }) {
         <View style={styles.fechaRow}>
           <View style={styles.fechaBox}>
             <Text style={styles.fechaLabel}>FOLIO:</Text>
-            <Text style={styles.fechaValor}>{folio}</Text>
+            <Text
+              style={{
+                ...styles.fechaValor,
+                fontFamily: "Helvetica-Bold",
+                color: "#1B3A6B",
+              }}
+            >
+              {folio}
+            </Text>
           </View>
         </View>
         <View style={styles.fechaRow}>
@@ -155,7 +213,7 @@ export function DocumentoPDF({ cot }) {
             <Text style={styles.fechaValor}>{fecha}</Text>
           </View>
         </View>
-        <View style={styles.fechaRow}>
+        <View style={{ ...styles.fechaRow, marginBottom: 10 }}>
           <View style={styles.fechaBox}>
             <Text style={styles.fechaLabel}>VIGENCIA</Text>
             <Text style={styles.fechaValor}>{cliente?.vigencia}</Text>
@@ -164,9 +222,9 @@ export function DocumentoPDF({ cot }) {
 
         {/* ATENCIÓN */}
         <Text style={styles.atencion}>
-          ATENCIÓN A: {cliente?.atencion?.toUpperCase()}
+          ATENCIÓN A: {cliente?.contacto?.toUpperCase()}
         </Text>
-        <Text style={styles.contacto}>{cliente?.contacto?.toUpperCase()}</Text>
+        <Text style={styles.contacto}>{cliente?.atencion?.toUpperCase()}</Text>
 
         {/* INTRO */}
         <Text style={styles.intro}>
@@ -190,7 +248,6 @@ export function DocumentoPDF({ cot }) {
 
         {/* TABLA OPCIONES */}
         <View style={styles.border}>
-          {/* Header tabla */}
           <View style={styles.tableHeader}>
             <Text style={{ ...styles.tableHeaderCell, flex: 2 }}>SERVICIO</Text>
             <Text style={{ ...styles.tableHeaderCell, textAlign: "center" }}>
@@ -199,17 +256,21 @@ export function DocumentoPDF({ cot }) {
             <Text style={{ ...styles.tableHeaderCell, textAlign: "center" }}>
               VISITAS/SEM
             </Text>
-            <Text style={{ ...styles.tableHeaderCell, textAlign: "right" }}>
+            <Text
+              style={{
+                ...styles.tableHeaderCell,
+                textAlign: "right",
+                borderRight: "none",
+              }}
+            >
               TOTAL
             </Text>
           </View>
 
           {opciones?.map((op, i) => (
             <View key={i}>
-              {/* Título opción */}
               <Text style={styles.opcionTitle}>OPCION {i + 1}</Text>
 
-              {/* Servicios de la opción */}
               {(op.servicios || []).map((srv, si) => {
                 const lineTotal =
                   srv.precioUnitario * srv.numContenedores +
@@ -225,14 +286,20 @@ export function DocumentoPDF({ cot }) {
                     <Text style={{ ...styles.cell, textAlign: "center" }}>
                       {srv.diasSemana} VIS/SEM
                     </Text>
-                    <Text style={{ ...styles.cell, textAlign: "right" }}>
+                    <Text
+                      style={{
+                        ...styles.cell,
+                        textAlign: "right",
+                        borderRight: "none",
+                      }}
+                    >
                       {fmt(lineTotal)}
                     </Text>
                   </View>
                 );
               })}
 
-              {/* Totales opción */}
+              {/* Totales */}
               <View
                 style={{
                   flexDirection: "row",
@@ -242,7 +309,7 @@ export function DocumentoPDF({ cot }) {
                 <View style={{ flex: 2 }} />
                 <View style={{ flex: 2 }}>
                   <View style={styles.totalRow}>
-                    <Text style={{ fontSize: 8, color: "#555" }}>
+                    <Text style={{ fontSize: 8, color: "#6B7280" }}>
                       SUBTOTAL $
                     </Text>
                     <Text style={{ fontSize: 8, fontFamily: "Helvetica-Bold" }}>
@@ -250,17 +317,17 @@ export function DocumentoPDF({ cot }) {
                     </Text>
                   </View>
                   <View style={styles.totalRow}>
-                    <Text style={{ fontSize: 8, color: "#555" }}>IVA $</Text>
+                    <Text style={{ fontSize: 8, color: "#6B7280" }}>IVA $</Text>
                     <Text style={{ fontSize: 8 }}>{fmt(op.iva)}</Text>
                   </View>
-                  <View
-                    style={{
-                      flexDirection: "row",
-                      justifyContent: "space-between",
-                      padding: "2 8",
-                    }}
-                  >
-                    <Text style={{ fontSize: 8, fontFamily: "Helvetica-Bold" }}>
+                  <View style={styles.netoRow}>
+                    <Text
+                      style={{
+                        fontSize: 8,
+                        fontFamily: "Helvetica-Bold",
+                        color: "#1B3A6B",
+                      }}
+                    >
                       NETO MENSUAL $
                     </Text>
                     <Text
@@ -285,8 +352,9 @@ export function DocumentoPDF({ cot }) {
             style={{
               marginTop: 8,
               padding: 8,
-              backgroundColor: "#fffbeb",
-              border: "1px solid #fde68a",
+              backgroundColor: "#FFFBEB",
+              border: "1px solid #FDE68A",
+              borderLeft: "3px solid #1B3A6B",
             }}
           >
             <Text
@@ -294,12 +362,12 @@ export function DocumentoPDF({ cot }) {
                 fontSize: 8,
                 fontFamily: "Helvetica-Bold",
                 marginBottom: 3,
-                color: "#92400e",
+                color: "#92400E",
               }}
             >
               OBSERVACIONES
             </Text>
-            <Text style={{ fontSize: 8, color: "#78350f", lineHeight: 1.5 }}>
+            <Text style={{ fontSize: 8, color: "#78350F", lineHeight: 1.5 }}>
               {cliente.notas}
             </Text>
           </View>
@@ -314,9 +382,8 @@ export function DocumentoPDF({ cot }) {
                 • {b}
               </Text>
             ))}
-            {/* Bases personalizadas */}
             {(cot.basesExtra || []).map((b, i) => (
-              <Text key={`extra-${i}`} style={styles.baseItem}>
+              <Text key={`extra-${i}`} style={styles.baseItemExtra}>
                 • {b}
               </Text>
             ))}
@@ -335,7 +402,7 @@ export function DocumentoPDF({ cot }) {
             <Text
               style={{
                 fontSize: 8,
-                color: "#555",
+                color: "#4B5563",
                 textAlign: "right",
                 lineHeight: 1.6,
               }}
@@ -349,6 +416,14 @@ export function DocumentoPDF({ cot }) {
               {sucursal?.tipo}
             </Text>
           </View>
+        </View>
+
+        {/* FOOTER */}
+        <View style={styles.footer}>
+          <Text style={styles.footerText}>
+            Puente Ambiental del Noroeste S.A de C.V · {sucursal?.ciudad} ·{" "}
+            {sucursal?.cp}
+          </Text>
         </View>
       </Page>
     </Document>
