@@ -165,6 +165,15 @@ export default function Login() {
                   className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-primary-600/20 focus:border-primary-600 transition-all duration-200 bg-gray-50"
                 />
               </div>
+              <div className="flex justify-end">
+                <Link
+                  to="/recuperar"
+                  className="text-xs font-medium hover:underline"
+                  style={{ color: "#1B3A6B" }}
+                >
+                  ¿Olvidaste tu contraseña?
+                </Link>
+              </div>
 
               {error && (
                 <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 flex items-center gap-2">

@@ -8,6 +8,8 @@ import PreviewCotizacion from './pages/PreviewCotizacion'
 import Login from './pages/Login'
 import Registro from './pages/Registro'
 import EditarCotizacion from './pages/EditarCotizacion'
+import RecuperarPassword from './pages/RecuperarPassword'
+import NuevaPassword from './pages/NuevaPassword'
 
 
 function RutaProtegida({ children }) {
@@ -21,6 +23,8 @@ export default function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/login"    element={<Login />} />
+        <Route path="/recuperar" element={<RecuperarPassword />} />
+        <Route path="/nueva-password" element={<NuevaPassword />} />
         <Route path="/registro" element={<Registro />} />
         <Route path="/" element={<RutaProtegida><Layout /></RutaProtegida>}>
           <Route index element={<Dashboard />} />
