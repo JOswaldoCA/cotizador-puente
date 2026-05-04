@@ -10,9 +10,23 @@ const badgeEstatus = (e) => {
   return 'bg-yellow-100 text-yellow-700'
 }
 
+const meses = {
+  'enero': 0, 'febrero': 1, 'marzo': 2, 'abril': 3,
+  'mayo': 4, 'junio': 5, 'julio': 6, 'agosto': 7,
+  'septiembre': 8, 'octubre': 9, 'noviembre': 10, 'diciembre': 11,
+}
+
+const parsearFecha = (fechaStr) => {
+  if (!fechaStr) return null
+  const partes = fechaStr.toLowerCase().split(' de ')
+  if (partes.length !== 3) return null
+  return new Date(parseInt(partes[2]), meses[partes[1]], parseInt(partes[0]))
+}
+
 export default function Dashboard() {
   const [cotizaciones, setCotizaciones] = useState([])
-  const [cargando, setCargando]         = useState(true)
+  const [cargando,     setCargando]     = useState(true)
+  const [periodo,      setPeriodo]      = useState('mes')
   const { perfil } = useAuth()
   const navigate   = useNavigate()
 
@@ -22,14 +36,22 @@ export default function Dashboard() {
       .finally(() => setCargando(false))
   }, [])
 
-  const total      = cotizaciones.length
-  const esteAño    = cotizaciones.filter(c =>
-    c.fecha?.includes(String(new Date().getFullYear()))
-  ).length
+  const hoy      = new Date()
+  const total    = cotizaciones.length
+  const vencidas = cotizaciones.filter(c => estaVencida(c.fecha, c.cliente?.vigencia)).length
+
+  const delPeriodo = cotizaciones.filter(c => {
+    const f = parsearFecha(c.fecha)
+    if (!f) return false
+    if (periodo === 'dia')  return f.toDateString() === hoy.toDateString()
+    if (periodo === 'mes')  return f.getMonth() === hoy.getMonth() && f.getFullYear() === hoy.getFullYear()
+    if (periodo === 'año')  return f.getFullYear() === hoy.getFullYear()
+    return false
+  })
+
   const aprobadas  = cotizaciones.filter(c => c.estatus === 'Aprobada').length
   const rechazadas = cotizaciones.filter(c => c.estatus === 'Rechazada').length
   const enRevision = cotizaciones.filter(c => !c.estatus || c.estatus === 'En revisión').length
-  const vencidas   = cotizaciones.filter(c => estaVencida(c.fecha, c.cliente?.vigencia)).length
 
   if (cargando) return (
     <div className="flex justify-center py-20 text-gray-400 text-sm">Cargando...</div>
@@ -48,6 +70,24 @@ export default function Dashboard() {
         </p>
       </div>
 
+      {/* Selector de período */}
+      <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-xl p-1 w-fit">
+        {[
+          { key: 'dia', label: 'Hoy' },
+          { key: 'mes', label: 'Este mes' },
+          { key: 'año', label: 'Este año' },
+        ].map(({ key, label }) => (
+          <button key={key} onClick={() => setPeriodo(key)}
+            className={`text-xs font-medium px-4 py-2 rounded-lg transition-colors ${
+              periodo === key
+                ? 'bg-primary-600 text-white'
+                : 'text-gray-500 hover:text-primary-600'
+            }`}>
+            {label}
+          </button>
+        ))}
+      </div>
+
       {/* Tarjetas principales */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         <div className="bg-white border border-gray-200 rounded-xl p-5 flex items-center gap-4">
@@ -60,8 +100,10 @@ export default function Dashboard() {
         <div className="bg-white border border-gray-200 rounded-xl p-5 flex items-center gap-4">
           <div className="w-12 h-12 rounded-xl bg-accent-300/30 flex items-center justify-center text-2xl">📅</div>
           <div>
-            <p className="text-xs text-gray-400 uppercase tracking-widest">Este año</p>
-            <p className="text-3xl font-bold text-primary-600">{esteAño}</p>
+            <p className="text-xs text-gray-400 uppercase tracking-widest">
+              {periodo === 'dia' ? 'Hoy' : periodo === 'mes' ? 'Este mes' : 'Este año'}
+            </p>
+            <p className="text-3xl font-bold text-primary-600">{delPeriodo.length}</p>
           </div>
         </div>
         <div className="bg-white border border-gray-200 rounded-xl p-5 flex items-center gap-4">
@@ -105,6 +147,34 @@ export default function Dashboard() {
           </div>
         </div>
       </div>
+
+      {/* Solo admin — resumen por sucursal */}
+      {perfil?.rol === 'admin' && (
+        <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+          <div className="px-6 py-4 border-b border-gray-100">
+            <h3 className="text-sm font-semibold text-primary-600">Resumen por sucursal</h3>
+          </div>
+          <div className="divide-y divide-gray-100">
+            {['SUC. MATRIZ', 'SUC. GUAYMAS', 'SUC. OBREGON'].map(tipo => {
+              const tots       = cotizaciones.filter(c => c.sucursal?.tipo === tipo).length
+              const aprobadas  = cotizaciones.filter(c => c.sucursal?.tipo === tipo && c.estatus === 'Aprobada').length
+              const rechazadas = cotizaciones.filter(c => c.sucursal?.tipo === tipo && c.estatus === 'Rechazada').length
+              const revision   = cotizaciones.filter(c => c.sucursal?.tipo === tipo && (!c.estatus || c.estatus === 'En revisión')).length
+              return (
+                <div key={tipo} className="px-6 py-4 flex items-center justify-between">
+                  <span className="text-sm font-medium text-gray-700">{tipo}</span>
+                  <div className="flex items-center gap-3 text-xs">
+                    <span className="text-gray-400">{tots} total</span>
+                    <span className="bg-yellow-100 text-yellow-700 font-medium px-2 py-0.5 rounded-lg">{revision} en revisión</span>
+                    <span className="bg-green-100 text-green-700 font-medium px-2 py-0.5 rounded-lg">{aprobadas} aprobadas</span>
+                    <span className="bg-red-100 text-red-600 font-medium px-2 py-0.5 rounded-lg">{rechazadas} rechazadas</span>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Últimas cotizaciones */}
       <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
