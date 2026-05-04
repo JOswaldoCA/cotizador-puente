@@ -11,8 +11,8 @@ const badgeEstatus = (e) => {
 }
 
 const meses = {
-  'enero':0,'febrero':1,'marzo':2,'abril':3,'mayo':4,'junio':5,
-  'julio':6,'agosto':7,'septiembre':8,'octubre':9,'noviembre':10,'diciembre':11,
+  enero:0, febrero:1, marzo:2, abril:3, mayo:4, junio:5,
+  julio:6, agosto:7, septiembre:8, octubre:9, noviembre:10, diciembre:11,
 }
 
 const parsearFecha = (fechaStr) => {
@@ -136,32 +136,25 @@ export default function Dashboard() {
       </div>
 
       {/* Tarjetas estatus */}
-      <div className="grid grid-cols-3 gap-3 lg:gap-4">
-        <div className="rounded-2xl p-3 lg:p-5 border border-amber-200 flex items-center gap-2 lg:gap-4"
-          style={{ background: 'linear-gradient(135deg, #FFFBEB, #FEF3C7)', boxShadow: '0 1px 3px rgba(217,119,6,0.08)' }}>
-          <div className="w-9 h-9 lg:w-12 lg:h-12 rounded-xl bg-amber-100 flex items-center justify-center text-lg lg:text-2xl flex-shrink-0">🔍</div>
-          <div>
-            <p className="text-xs font-bold text-amber-600 uppercase tracking-wide hidden sm:block">En revisión</p>
-            <p className="text-xs font-bold text-amber-600 sm:hidden">Revisión</p>
-            <p className="text-2xl lg:text-3xl font-bold text-amber-700">{enRevision}</p>
+      <div className="grid grid-cols-3 gap-2 lg:gap-4">
+        {[
+          { icon: '🔍', label: 'Rev.',    labelLg: 'En revisión', value: enRevision, bg: 'linear-gradient(135deg, #FFFBEB, #FEF3C7)', border: 'border-amber-200',   iconBg: 'bg-amber-100',   textColor: 'text-amber-700',   labelColor: 'text-amber-600'   },
+          { icon: '✅', label: 'Aprob.',  labelLg: 'Aprobadas',   value: aprobadas,  bg: 'linear-gradient(135deg, #ECFDF5, #D1FAE5)', border: 'border-emerald-200', iconBg: 'bg-emerald-100', textColor: 'text-emerald-700', labelColor: 'text-emerald-600' },
+          { icon: '❌', label: 'Rech.',   labelLg: 'Rechazadas',  value: rechazadas, bg: 'linear-gradient(135deg, #FFF5F5, #FEE2E2)', border: 'border-red-200',     iconBg: 'bg-red-100',     textColor: 'text-red-700',     labelColor: 'text-red-600'     },
+        ].map(({ icon, label, labelLg, value, bg, border, iconBg, textColor, labelColor }) => (
+          <div key={label}
+            className={`rounded-2xl p-3 lg:p-5 border ${border} flex flex-col items-center lg:flex-row lg:items-center gap-1 lg:gap-4`}
+            style={{ background: bg, boxShadow: '0 1px 3px rgba(27,58,107,0.06)' }}>
+            <div className={`w-8 h-8 lg:w-12 lg:h-12 rounded-xl ${iconBg} flex items-center justify-center text-base lg:text-2xl flex-shrink-0`}>
+              {icon}
+            </div>
+            <div className="text-center lg:text-left">
+              <p className={`text-xs font-bold ${labelColor} uppercase tracking-wide hidden lg:block`}>{labelLg}</p>
+              <p className={`text-xs font-bold ${labelColor} lg:hidden`}>{label}</p>
+              <p className={`text-xl lg:text-3xl font-bold ${textColor}`}>{value}</p>
+            </div>
           </div>
-        </div>
-        <div className="rounded-2xl p-3 lg:p-5 border border-emerald-200 flex items-center gap-2 lg:gap-4"
-          style={{ background: 'linear-gradient(135deg, #ECFDF5, #D1FAE5)', boxShadow: '0 1px 3px rgba(16,185,129,0.08)' }}>
-          <div className="w-9 h-9 lg:w-12 lg:h-12 rounded-xl bg-emerald-100 flex items-center justify-center text-lg lg:text-2xl flex-shrink-0">✅</div>
-          <div>
-            <p className="text-xs font-bold text-emerald-600 uppercase tracking-wide">Aprobadas</p>
-            <p className="text-2xl lg:text-3xl font-bold text-emerald-700">{aprobadas}</p>
-          </div>
-        </div>
-        <div className="rounded-2xl p-3 lg:p-5 border border-red-200 flex items-center gap-2 lg:gap-4"
-          style={{ background: 'linear-gradient(135deg, #FFF5F5, #FEE2E2)', boxShadow: '0 1px 3px rgba(239,68,68,0.08)' }}>
-          <div className="w-9 h-9 lg:w-12 lg:h-12 rounded-xl bg-red-100 flex items-center justify-center text-lg lg:text-2xl flex-shrink-0">❌</div>
-          <div>
-            <p className="text-xs font-bold text-red-600 uppercase tracking-wide">Rechazadas</p>
-            <p className="text-2xl lg:text-3xl font-bold text-red-700">{rechazadas}</p>
-          </div>
-        </div>
+        ))}
       </div>
 
       {/* Resumen por sucursal — solo admin */}
@@ -246,7 +239,7 @@ export default function Dashboard() {
                       <span className="font-mono text-xs text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded">
                         {cot.folio.split('-').slice(-1)[0]}
                       </span>
-                      <span className="text-xs text-gray-400">{cot.fecha?.split(' ').slice(0,3).join(' ')}</span>
+                      <span className="text-xs text-gray-400">{cot.fecha?.split(' ').slice(0, 3).join(' ')}</span>
                     </div>
                   </div>
                   <div className="flex items-center gap-2 flex-shrink-0">
