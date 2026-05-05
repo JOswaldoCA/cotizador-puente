@@ -10,7 +10,7 @@ import Registro from './pages/Registro'
 import EditarCotizacion from './pages/EditarCotizacion'
 import RecuperarPassword from './pages/RecuperarPassword'
 import NuevaPassword from './pages/NuevaPassword'
-
+import Confirmado from './pages/Confirmado'
 
 function RutaProtegida({ children }) {
   const { usuario, cargando } = useAuth()
@@ -22,15 +22,16 @@ export default function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/login"    element={<Login />} />
-        <Route path="/recuperar" element={<RecuperarPassword />} />
+        <Route path="/login"          element={<Login />} />
+        <Route path="/recuperar"      element={<RecuperarPassword />} />
         <Route path="/nueva-password" element={<NuevaPassword />} />
-        <Route path="/registro" element={<Registro />} />
+        <Route path="/registro"       element={<Registro />} />
+        <Route path="/confirmado"     element={<Confirmado />} />
         <Route path="/" element={<RutaProtegida><Layout /></RutaProtegida>}>
           <Route index element={<Dashboard />} />
           <Route path="nueva" element={<NuevaCotizacion />} />
           <Route path="cotizaciones" element={<Cotizaciones />} />
-          <Route path="cotizaciones/:folio/editar" element={<EditarCotizacion />} />  {/* ← agregar */}
+          <Route path="cotizaciones/:folio/editar" element={<EditarCotizacion />} />
         </Route>
         <Route path="/preview/:folio" element={<RutaProtegida><PreviewCotizacion /></RutaProtegida>} />
       </Routes>
