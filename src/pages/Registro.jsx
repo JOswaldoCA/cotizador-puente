@@ -69,8 +69,7 @@ const handleSubmit = async (e) => {
   if (err) return setError(err)
   setCargando(true)
 
-  // Pasar nombre y sucursal como metadata
-  const { error: errAuth } = await supabase.auth.signUp({
+  const { data, error: errAuth } = await supabase.auth.signUp({
     email:    form.email,
     password: form.password,
     options: {
@@ -83,10 +82,13 @@ const handleSubmit = async (e) => {
 
   if (errAuth) {
     setCargando(false)
-    if (errAuth.message.includes('already registered')) {
-      return setError('Este correo ya está registrado. Intenta iniciar sesión.')
-    }
-    return setError(errAuth.message)
+    return setError('No se pudo crear la cuenta. Intenta de nuevo.')
+  }
+
+  // Si identities viene vacío el correo ya está registrado
+  if (data?.user && data.user.identities?.length === 0) {
+    setCargando(false)
+    return setError('Este correo ya está registrado. Intenta iniciar sesión.')
   }
 
   setCargando(false)
