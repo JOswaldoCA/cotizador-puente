@@ -64,22 +64,33 @@ export default function Registro() {
     return null
   }
 
-  const handleSubmit = async (e) => {
-    e.preventDefault()
-    setError('')
-    const err = validar()
-    if (err) return setError(err)
-    setCargando(true)
-    const { data, error: errAuth } = await registro(form.email, form.password)
-    if (errAuth) { setCargando(false); return setError(errAuth.message) }
-    if (data?.user) {
-      await supabase.from('perfiles')
-        .update({ nombre: form.nombre, sucursal_id: form.sucursal })
-        .eq('id', data.user.id)
-    }
-    setCargando(false)
-    setExito(true)
+const handleSubmit = async (e) => {
+  e.preventDefault()
+  setError('')
+  const err = validar()
+  if (err) return setError(err)
+  setCargando(true)
+  const { data, error: errAuth } = await registro(form.email, form.password)
+  if (errAuth) { setCargando(false); return setError(errAuth.message) }
+  if (data?.user) {
+    // Esperar un momento para que el trigger cree el perfil
+    await new Promise(r => setTimeout(r, 1000))
+    
+    // Usar upsert en vez de update
+    const { error: errorPerfil } = await supabase
+      .from('perfiles')
+      .upsert({
+        id:          data.user.id,
+        nombre:      form.nombre,
+        sucursal_id: form.sucursal,
+        rol:         'usuario',
+      }, { onConflict: 'id' })
+
+    console.log('Error perfil:', errorPerfil)
   }
+  setCargando(false)
+  setExito(true)
+}
 
   
 
