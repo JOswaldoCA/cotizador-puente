@@ -1,6 +1,5 @@
 import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
-import { useAuth } from '../hooks/useAuth'
 import { supabase } from '../services/supabase'
 import { SUCURSALES } from '../utils/constantes'
 import logo from '../assets/logoPA.png'
@@ -46,7 +45,6 @@ const PanelIzquierdo = () => (
   )
 
 export default function Registro() {
-  const { registro } = useAuth()
   const navigate = useNavigate()
   const [form, setForm] = useState({
     nombre: '', email: '', sucursal: 'matriz', password: '', confirmar: '',
@@ -71,34 +69,29 @@ const handleSubmit = async (e) => {
   if (err) return setError(err)
   setCargando(true)
 
-  const { data, error: errAuth } = await registro(form.email, form.password)
+  // Pasar nombre y sucursal como metadata
+  const { error: errAuth } = await supabase.auth.signUp({
+    email:    form.email,
+    password: form.password,
+    options: {
+      data: {
+        nombre:      form.nombre,
+        sucursal_id: form.sucursal,
+      }
+    }
+  })
 
   if (errAuth) {
     setCargando(false)
-    // Mensaje claro para correo duplicado
-    if (errAuth.message.includes('already registered') || errAuth.message.includes('already been registered')) {
+    if (errAuth.message.includes('already registered')) {
       return setError('Este correo ya está registrado. Intenta iniciar sesión.')
     }
     return setError(errAuth.message)
   }
 
-  if (data?.user) {
-    await new Promise(r => setTimeout(r, 1000))
-    const { error: errorPerfil } = await supabase
-      .from('perfiles')
-      .upsert({
-        id:          data.user.id,
-        nombre:      form.nombre,
-        sucursal_id: form.sucursal,
-        rol:         'usuario',
-      }, { onConflict: 'id' })
-    console.log('Error perfil:', errorPerfil)
-  }
-
   setCargando(false)
   setExito(true)
 }
-
   
 
   if (exito) return (
