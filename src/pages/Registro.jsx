@@ -70,13 +70,20 @@ const handleSubmit = async (e) => {
   const err = validar()
   if (err) return setError(err)
   setCargando(true)
+
   const { data, error: errAuth } = await registro(form.email, form.password)
-  if (errAuth) { setCargando(false); return setError(errAuth.message) }
+
+  if (errAuth) {
+    setCargando(false)
+    // Mensaje claro para correo duplicado
+    if (errAuth.message.includes('already registered') || errAuth.message.includes('already been registered')) {
+      return setError('Este correo ya está registrado. Intenta iniciar sesión.')
+    }
+    return setError(errAuth.message)
+  }
+
   if (data?.user) {
-    // Esperar un momento para que el trigger cree el perfil
     await new Promise(r => setTimeout(r, 1000))
-    
-    // Usar upsert en vez de update
     const { error: errorPerfil } = await supabase
       .from('perfiles')
       .upsert({
@@ -85,9 +92,9 @@ const handleSubmit = async (e) => {
         sucursal_id: form.sucursal,
         rol:         'usuario',
       }, { onConflict: 'id' })
-
     console.log('Error perfil:', errorPerfil)
   }
+
   setCargando(false)
   setExito(true)
 }
