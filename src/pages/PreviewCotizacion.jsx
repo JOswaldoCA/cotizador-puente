@@ -52,15 +52,15 @@ export default function PreviewCotizacion() {
             width: 100% !important;
             min-height: unset !important;
             margin: 0 !important;
-            padding: 6mm !important;
+            padding: 8mm !important;
             box-shadow: none !important;
             border-radius: 0 !important;
-            font-size: 9px !important;
+            font-size: 10px !important;
           }
 
           @page {
             size: letter portrait;
-            margin: 6mm 8mm;
+            margin: 8mm 10mm;
           }
         }
         body { background: #F0F4F8; }
@@ -118,9 +118,9 @@ export default function PreviewCotizacion() {
             minHeight: "279mm",
             margin: "0 auto",
             background: "#fff",
-            padding: "8mm",
+            padding: "12mm",
             fontFamily: "Arial, sans-serif",
-            fontSize: "11px",
+            fontSize: "12px",
             color: "#111",
             boxSizing: "border-box",
             boxShadow:

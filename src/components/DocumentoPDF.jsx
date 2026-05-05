@@ -12,8 +12,8 @@ import { logoBase64 } from "../assets/logoBase64";
 const styles = StyleSheet.create({
   page: {
     fontFamily: "Helvetica",
-    fontSize: 10,
-    padding: 30,
+    fontSize: 11,
+    padding: 32,
     color: "#111",
     backgroundColor: "#ffffff",
   },
@@ -68,9 +68,9 @@ const styles = StyleSheet.create({
   border: { border: "1px solid #d1d5db" },
   tableHeader: { flexDirection: "row", backgroundColor: "#FFD700" },
   tableHeaderCell: {
-    padding: "6 8",
+    padding: "7 10",
     fontFamily: "Helvetica-Bold",
-    fontSize: 9,
+    fontSize: 10,
     color: "#1B3A6B",
     flex: 1,
     borderRight: "1px solid #B8860B",
@@ -90,8 +90,8 @@ const styles = StyleSheet.create({
     backgroundColor: "#fafafa",
   },
   cell: {
-    padding: "4 8",
-    fontSize: 9,
+    padding: "5 10",
+    fontSize: 10,
     flex: 1,
     borderRight: "1px solid #e5e7eb",
     color: "#374151",
@@ -119,10 +119,10 @@ const styles = StyleSheet.create({
   },
   baseItem: { fontSize: 8, color: "#555", marginBottom: 2, lineHeight: 1.4 },
   baseItemExtra: {
-    fontSize: 8,
+    fontSize: 9,
     color: "#1B3A6B",
-    marginBottom: 2,
-    lineHeight: 1.4,
+    marginBottom: 3,
+    lineHeight: 1.5,
     fontFamily: "Helvetica-Bold",
   },
 
