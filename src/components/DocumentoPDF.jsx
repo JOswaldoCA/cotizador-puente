@@ -12,8 +12,8 @@ import { logoBase64 } from "../assets/logoBase64";
 const styles = StyleSheet.create({
   page: {
     fontFamily: "Helvetica",
-    fontSize: 11,
-    padding: 32,
+    fontSize: 9,
+    padding: 24,
     color: "#111",
     backgroundColor: "#ffffff",
   },
@@ -30,12 +30,12 @@ const styles = StyleSheet.create({
   },
   fechaBox: { flexDirection: "row", border: "1px solid #d1d5db", fontSize: 9 },
   fechaLabel: {
-    padding: "3 8",
+    padding: "2 6",
     backgroundColor: "#EEF2FF",
     fontFamily: "Helvetica-Bold",
     color: "#1B3A6B",
   },
-  fechaValor: { padding: "3 8", backgroundColor: "#ffffff" },
+  fechaValor: { padding: "2 6", backgroundColor: "#ffffff" },
 
   // Atención
   atencion: {
@@ -55,22 +55,22 @@ const styles = StyleSheet.create({
   },
 
   // Texto
-  intro: { fontSize: 9, lineHeight: 1.6, marginBottom: 8, color: "#4B5563" },
+  intro: { fontSize: 8, lineHeight: 1.5, marginBottom: 6, color: "#4B5563" },
   cotLabel: {
-    fontSize: 10,
+    fontSize: 9,
     fontFamily: "Helvetica-Bold",
-    marginBottom: 3,
+    marginBottom: 2,
     color: "#1B3A6B",
   },
-  cotTexto: { fontSize: 9, lineHeight: 1.6, marginBottom: 8, color: "#4B5563" },
+  cotTexto: { fontSize: 8, lineHeight: 1.5, marginBottom: 6, color: "#4B5563" },
 
   // Tabla
   border: { border: "1px solid #d1d5db" },
   tableHeader: { flexDirection: "row", backgroundColor: "#FFD700" },
   tableHeaderCell: {
-    padding: "7 10",
+    padding: "4 6",
     fontFamily: "Helvetica-Bold",
-    fontSize: 10,
+    fontSize: 8,
     color: "#1B3A6B",
     flex: 1,
     borderRight: "1px solid #B8860B",
@@ -90,8 +90,8 @@ const styles = StyleSheet.create({
     backgroundColor: "#fafafa",
   },
   cell: {
-    padding: "5 10",
-    fontSize: 10,
+    padding: "3 6",
+    fontSize: 8,
     flex: 1,
     borderRight: "1px solid #e5e7eb",
     color: "#374151",
@@ -99,30 +99,30 @@ const styles = StyleSheet.create({
   totalRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-    padding: "2 8",
+    padding: "2 6",
     borderBottom: "1px solid #e5e7eb",
   },
   netoRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-    padding: "3 8",
+    padding: "2 6",
     backgroundColor: "#EEF2FF",
   },
 
   // Bases
   basesTitle: {
-    fontSize: 9,
+    fontSize: 8,
     fontFamily: "Helvetica-Bold",
-    marginTop: 10,
-    marginBottom: 4,
+    marginTop: 8,
+    marginBottom: 3,
     color: "#1B3A6B",
   },
   baseItem: { fontSize: 8, color: "#555", marginBottom: 2, lineHeight: 1.4 },
   baseItemExtra: {
-    fontSize: 9,
+    fontSize: 7.5,
     color: "#1B3A6B",
-    marginBottom: 3,
-    lineHeight: 1.5,
+    marginBottom: 2,
+    lineHeight: 1.4,
     fontFamily: "Helvetica-Bold",
   },
 
