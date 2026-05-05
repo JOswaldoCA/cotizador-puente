@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useCotizacion } from "../hooks/useCotizacion";
 import { SUCURSALES } from "../utils/constantes";
 import {
@@ -52,10 +52,13 @@ export default function NuevaCotizacion() {
   } = useCotizacion();
 
   const { perfil } = useAuth();
+  const buscadorRef = useRef(null);
 
   const [catalogoServicios, setCatalogoServicios] = useState([]);
   const [clientes, setClientes] = useState([]);
   const [clienteSeleccionado, setClienteSeleccionado] = useState("");
+  const [busquedaCliente, setBusquedaCliente] = useState("");
+  const [mostrarLista, setMostrarLista] = useState(false);
   const [modalFolio, setModalFolio] = useState(null);
   const [guardando, setGuardando] = useState(false);
   const [cargandoDB, setCargandoDB] = useState(true);
@@ -76,6 +79,26 @@ export default function NuevaCotizacion() {
       .catch(console.error)
       .finally(() => setCargandoDB(false));
   }, []);
+
+  // Cerrar lista al hacer clic fuera
+  useEffect(() => {
+    const cerrar = (e) => {
+      if (buscadorRef.current && !buscadorRef.current.contains(e.target)) {
+        setMostrarLista(false);
+      }
+    };
+    document.addEventListener("mousedown", cerrar);
+    return () => document.removeEventListener("mousedown", cerrar);
+  }, []);
+
+  const clientesFiltrados = clientes
+    .filter((c) =>
+      c.razon_social
+        ?.trim()
+        .toLowerCase()
+        .includes(busquedaCliente.toLowerCase()),
+    )
+    .slice(0, 10);
 
   const seleccionarCliente = (razonSocial) => {
     setClienteSeleccionado(razonSocial);
@@ -141,18 +164,16 @@ export default function NuevaCotizacion() {
               <span className="text-primary-600 font-semibold">{folio}</span>
             </p>
           </div>
-          <div className="flex items-center gap-3">
-            <span
-              className="text-xs font-semibold px-3 py-1.5 rounded-xl border"
-              style={{
-                background: "rgba(255,215,0,0.1)",
-                borderColor: "rgba(255,215,0,0.3)",
-                color: "#92700a",
-              }}
-            >
-              📅 {fechaHoy()}
-            </span>
-          </div>
+          <span
+            className="text-xs font-semibold px-3 py-1.5 rounded-xl border"
+            style={{
+              background: "rgba(255,215,0,0.1)",
+              borderColor: "rgba(255,215,0,0.3)",
+              color: "#92700a",
+            }}
+          >
+            📅 {fechaHoy()}
+          </span>
         </div>
 
         {/* Sucursal */}
@@ -185,42 +206,111 @@ export default function NuevaCotizacion() {
         >
           <SectionHeader title="Datos del cliente" icon="👤" />
           <div className="p-6 flex flex-col gap-5">
-            {/* Buscador */}
-            <div>
+            {/* Buscador con autocomplete */}
+            <div ref={buscadorRef}>
               <label className={label}>Buscar cliente existente</label>
-              <select
-                className={input}
-                value={clienteSeleccionado}
-                onChange={(e) => seleccionarCliente(e.target.value)}
-                disabled={cargandoDB}
-              >
-                <option value="">
-                  {cargandoDB
-                    ? "⏳ Cargando clientes..."
-                    : "— Nuevo cliente / buscar —"}
-                </option>
-                {clientes.map((c, i) => (
-                  <option key={i} value={c.razon_social?.trim()}>
-                    {c.razon_social?.trim() || "Sin nombre"}
-                  </option>
-                ))}
-              </select>
-              {clienteSeleccionado && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setClienteSeleccionado("");
-                    setCliente((p) => ({
-                      ...p,
-                      atencion: "",
-                      contacto: "",
-                      email: "",
-                    }));
+              <div className="relative">
+                <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 text-sm">
+                  🔍
+                </span>
+                <input
+                  type="text"
+                  placeholder={
+                    cargandoDB
+                      ? "⏳ Cargando clientes..."
+                      : "Escribe para buscar cliente..."
+                  }
+                  value={busquedaCliente}
+                  disabled={cargandoDB}
+                  onChange={(e) => {
+                    setBusquedaCliente(e.target.value);
+                    setMostrarLista(true);
                   }}
-                  className="text-xs text-red-400 hover:text-red-600 mt-1.5 flex items-center gap-1 font-medium"
-                >
-                  × Limpiar y capturar nuevo cliente
-                </button>
+                  onFocus={() => {
+                    if (busquedaCliente) setMostrarLista(true);
+                  }}
+                  className={input + " pl-9 pr-8"}
+                />
+                {busquedaCliente && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setBusquedaCliente("");
+                      setMostrarLista(false);
+                      setClienteSeleccionado("");
+                      setCliente((p) => ({
+                        ...p,
+                        atencion: "",
+                        contacto: "",
+                        email: "",
+                      }));
+                    }}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-lg font-bold"
+                  >
+                    ×
+                  </button>
+                )}
+
+                {/* Lista desplegable */}
+                {mostrarLista && busquedaCliente && (
+                  <div
+                    className="absolute z-20 w-full mt-1 bg-white border border-gray-200 rounded-xl overflow-hidden max-h-60 overflow-y-auto"
+                    style={{ boxShadow: "0 8px 24px rgba(27,58,107,0.12)" }}
+                  >
+                    {clientesFiltrados.length > 0 ? (
+                      clientesFiltrados.map((c, i) => (
+                        <button
+                          key={i}
+                          type="button"
+                          onMouseDown={(e) => e.preventDefault()}
+                          onClick={() => {
+                            setBusquedaCliente(c.razon_social?.trim() || "");
+                            setMostrarLista(false);
+                            seleccionarCliente(c.razon_social?.trim());
+                          }}
+                          className="w-full text-left px-4 py-3 hover:bg-primary-50 transition-colors border-b border-gray-50 last:border-0"
+                        >
+                          <p className="text-sm font-semibold text-gray-800">
+                            {c.razon_social?.trim()}
+                          </p>
+                          {c.e_mail && (
+                            <p className="text-xs text-gray-400 mt-0.5 truncate">
+                              {c.e_mail}
+                            </p>
+                          )}
+                        </button>
+                      ))
+                    ) : (
+                      <div className="px-4 py-3 text-sm text-gray-400">
+                        No se encontraron clientes
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {clienteSeleccionado && (
+                <div className="flex items-center gap-2 mt-2 bg-primary-50 border border-primary-100 rounded-xl px-3 py-2">
+                  <span className="text-xs text-primary-600 font-semibold flex-1 truncate">
+                    ✓ {clienteSeleccionado}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setBusquedaCliente("");
+                      setClienteSeleccionado("");
+                      setCliente((p) => ({
+                        ...p,
+                        atencion: "",
+                        contacto: "",
+                        email: "",
+                      }));
+                    }}
+                    className="text-xs text-red-400 hover:text-red-600 font-medium whitespace-nowrap"
+                  >
+                    × Limpiar
+                  </button>
+                </div>
               )}
             </div>
 
@@ -329,7 +419,6 @@ export default function NuevaCotizacion() {
                   className="border border-gray-200 rounded-2xl overflow-hidden"
                   style={{ boxShadow: "0 1px 3px rgba(27,58,107,0.04)" }}
                 >
-                  {/* Header opción */}
                   <div
                     className="flex items-center justify-between px-5 py-3.5 border-b border-gray-100"
                     style={{
@@ -361,7 +450,6 @@ export default function NuevaCotizacion() {
                     )}
                   </div>
 
-                  {/* Servicios */}
                   <div className="divide-y divide-gray-50">
                     {op.servicios.map((srv, srvIdx) => {
                       const lineTotal = calcularServicio(srv);
@@ -416,7 +504,6 @@ export default function NuevaCotizacion() {
                                 ))}
                               </select>
                             </div>
-
                             <div>
                               <label className={label}>
                                 Precio unitario ($)
@@ -438,7 +525,6 @@ export default function NuevaCotizacion() {
                                 }
                               />
                             </div>
-
                             <div>
                               <label className={label}>N° contenedores</label>
                               <div className="flex items-center gap-1.5">
@@ -488,7 +574,6 @@ export default function NuevaCotizacion() {
                                 </button>
                               </div>
                             </div>
-
                             <div>
                               <label className={label}>
                                 Precio por día ($)
@@ -510,7 +595,6 @@ export default function NuevaCotizacion() {
                                 }
                               />
                             </div>
-
                             <div>
                               <label className={label}>
                                 Visitas por semana
@@ -563,8 +647,6 @@ export default function NuevaCotizacion() {
                                 </button>
                               </div>
                             </div>
-
-                            {/* Subtotal línea */}
                             <div className="col-span-2">
                               <div className="flex items-center justify-end gap-2 bg-gray-50 rounded-xl px-4 py-2.5 border border-gray-100">
                                 <span className="text-xs text-gray-400 font-medium">
@@ -584,7 +666,6 @@ export default function NuevaCotizacion() {
                     })}
                   </div>
 
-                  {/* Agregar servicio */}
                   <div className="px-5 pb-4">
                     <button
                       type="button"
@@ -595,7 +676,6 @@ export default function NuevaCotizacion() {
                     </button>
                   </div>
 
-                  {/* Totales opción */}
                   <div className="grid grid-cols-3 divide-x divide-gray-100 border-t border-gray-100">
                     {[
                       { l: "Subtotal", v: subtotal },
@@ -604,7 +684,7 @@ export default function NuevaCotizacion() {
                     ].map(({ l, v, highlight }) => (
                       <div
                         key={l}
-                        className={`text-center py-4 px-2 ${highlight ? "" : ""}`}
+                        className="text-center py-4 px-2"
                         style={
                           highlight
                             ? {
