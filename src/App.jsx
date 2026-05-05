@@ -29,26 +29,23 @@ export default function App() {
   useEffect(() => {
     const { data: listener } = supabase.auth.onAuthStateChange(
       (event, session) => {
-        console.log("evento:", event);
-        console.log("hash:", window.location.hash);
-        console.log("session:", session);
-
-        if (event === "SIGNED_IN") {
-          const hash = window.location.hash;
-          if (
-            hash.includes("type=signup") ||
-            hash.includes("type=email_change")
-          ) {
-            supabase.auth.signOut().then(() => {
-              window.location.href = "/login?confirmado=true";
-            });
+        if (event === "SIGNED_IN" && session?.user) {
+          const confirmedAt = session.user.email_confirmed_at;
+          if (confirmedAt) {
+            const segundos =
+              (Date.now() - new Date(confirmedAt).getTime()) / 1000;
+            // Si se confirmó hace menos de 10 segundos es confirmación nueva
+            if (segundos < 10) {
+              supabase.auth.signOut().then(() => {
+                window.location.href = "/login?confirmado=true";
+              });
+            }
           }
         }
       },
     );
     return () => listener.subscription.unsubscribe();
   }, []);
-
   return (
     <BrowserRouter>
       <Routes>
