@@ -6,9 +6,20 @@ export default function Confirmado() {
   const navigate = useNavigate()
 
   useEffect(() => {
-    supabase.auth.signOut().then(() => {
-      navigate('/login?confirmado=true')
+    // Supabase pasa el token en el hash de la URL
+    // onAuthStateChange lo procesa automáticamente
+    const { data: listener } = supabase.auth.onAuthStateChange((event) => {
+      if (event === 'SIGNED_IN' || event === 'USER_UPDATED') {
+        // Cerrar sesión y redirigir al login con mensaje
+        setTimeout(() => {
+          supabase.auth.signOut().then(() => {
+            navigate('/login?confirmado=true')
+          })
+        }, 1500) // Pequeña espera para mostrar el mensaje
+      }
     })
+
+    return () => listener.subscription.unsubscribe()
   }, [])
 
   return (

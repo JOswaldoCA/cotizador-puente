@@ -1,5 +1,7 @@
+import { useEffect } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { useAuth } from './hooks/useAuth'
+import { supabase } from './services/supabase'
 import Layout from './components/Layout'
 import Dashboard from './pages/Dashboard'
 import NuevaCotizacion from './pages/NuevaCotizacion'
@@ -19,6 +21,21 @@ function RutaProtegida({ children }) {
 }
 
 export default function App() {
+
+  useEffect(() => {
+    const { data: listener } = supabase.auth.onAuthStateChange((event) => {
+      if (event === 'SIGNED_IN') {
+        const hash = window.location.hash
+        if (hash.includes('type=signup') || hash.includes('type=email_change')) {
+          supabase.auth.signOut().then(() => {
+            window.location.href = '/login?confirmado=true'
+          })
+        }
+      }
+    })
+    return () => listener.subscription.unsubscribe()
+  }, [])
+
   return (
     <BrowserRouter>
       <Routes>
