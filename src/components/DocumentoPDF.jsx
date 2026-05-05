@@ -192,7 +192,7 @@ export function DocumentoPDF({ cot }) {
 
         <View style={styles.divider} />
 
-        {/* FOLIO / FECHA / VIGENCIA */}
+        {/* FOLIO / FECHA / VIGENCIA / FORMA DE PAGO */}
         <View style={styles.fechaRow}>
           <View style={styles.fechaBox}>
             <Text style={styles.fechaLabel}>FOLIO:</Text>
@@ -213,10 +213,24 @@ export function DocumentoPDF({ cot }) {
             <Text style={styles.fechaValor}>{fecha}</Text>
           </View>
         </View>
-        <View style={{ ...styles.fechaRow, marginBottom: 10 }}>
+        <View style={styles.fechaRow}>
           <View style={styles.fechaBox}>
             <Text style={styles.fechaLabel}>VIGENCIA</Text>
             <Text style={styles.fechaValor}>{cliente?.vigencia}</Text>
+          </View>
+        </View>
+        <View style={{ ...styles.fechaRow, marginBottom: 10 }}>
+          <View style={styles.fechaBox}>
+            <Text style={styles.fechaLabel}>FORMA DE PAGO</Text>
+            <Text
+              style={{
+                ...styles.fechaValor,
+                fontFamily: "Helvetica-Bold",
+                color: "#1B3A6B",
+              }}
+            >
+              {cliente?.pago?.toUpperCase() || "MENSUAL"}
+            </Text>
           </View>
         </View>
 

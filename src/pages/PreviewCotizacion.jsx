@@ -229,7 +229,7 @@ export default function PreviewCotizacion() {
                 </td>
               </tr>
               <tr>
-                <td></td>
+                <td width="55%"></td>
                 <td
                   style={{
                     border: "1px solid #ccc",
@@ -248,6 +248,31 @@ export default function PreviewCotizacion() {
                   }}
                 >
                   {cliente.vigencia}
+                </td>
+              </tr>
+              {/* ← AGREGA ESTA FILA */}
+              <tr>
+                <td width="55%"></td>
+                <td
+                  style={{
+                    border: "1px solid #ccc",
+                    padding: "2px 6px",
+                    fontSize: 9,
+                    background: "#f8f8f8",
+                  }}
+                >
+                  <strong>FORMA DE PAGO</strong>
+                </td>
+                <td
+                  style={{
+                    border: "1px solid #ccc",
+                    padding: "2px 6px",
+                    fontSize: 9,
+                    fontWeight: 700,
+                    color: "#1B3A6B",
+                  }}
+                >
+                  {cliente.pago?.toUpperCase() || "MENSUAL"}
                 </td>
               </tr>
             </tbody>

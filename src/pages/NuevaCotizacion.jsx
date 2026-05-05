@@ -139,7 +139,11 @@ export default function NuevaCotizacion() {
         folio,
         fecha: fechaHoy(),
         sucursal,
-        cliente,
+        cliente: {
+          ...cliente,
+          atencion: cliente.atencion?.toUpperCase(),
+          contacto: cliente.contacto?.toUpperCase(),
+        },
         opciones: opcionesConTotales,
         basesExtra,
       });
@@ -318,7 +322,7 @@ export default function NuevaCotizacion() {
               <div>
                 <label className={label}>Atención a (negocio) *</label>
                 <input
-                  className={input}
+                  className={input + " uppercase"}
                   placeholder="Nombre del negocio"
                   value={cliente.atencion}
                   onChange={(e) =>
@@ -329,7 +333,7 @@ export default function NuevaCotizacion() {
               <div>
                 <label className={label}>Contacto / Razón social</label>
                 <input
-                  className={input}
+                  className={input + " uppercase"}
                   placeholder="Razón social"
                   value={cliente.contacto || ""}
                   onChange={(e) =>
@@ -741,7 +745,7 @@ export default function NuevaCotizacion() {
           type="button"
           onClick={guardar}
           disabled={guardando}
-          className="w-full text-white font-bold text-sm py-4 rounded-2xl transition-all duration-200 disabled:opacity-50 flex items-center justify-center gap-2"
+          className="w-full text-white font-bold text-sm py-4 rounded-2xl transition-all duration-200 disabled:opacity-50 flex items-center justify-center gap-2 hover:scale-105 active:scale-95"
           style={{
             background: guardando
               ? "#6B7280"

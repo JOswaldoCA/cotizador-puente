@@ -26,7 +26,7 @@ export function useCotizacion() {
     atencion: "",
     contacto: "",
     vigencia: "1 MES",
-    pago: "Mensual",
+    pago: "MES SERVIDO",
     email: "",
     notas: "",
   });
