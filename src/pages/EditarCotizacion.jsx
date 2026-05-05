@@ -10,7 +10,7 @@ import BasesEditor from "../components/BasesEditor";
 const input    = "border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-primary-600/20 focus:border-primary-600 w-full bg-white transition-all duration-200";
 const inputSm  = "border border-gray-200 rounded-xl px-3 py-2 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-primary-600/20 focus:border-primary-600 w-full bg-white transition-all duration-200";
 const label    = "text-xs font-semibold text-gray-500 mb-1.5 block uppercase tracking-wide";
-const PAGOS    = ["Mensual", "Trimestral", "Anual", "Por evento"];
+const PAGOS    = ["MES SERVIDO", "MES CORRIENTE"];
 const btnCounter = "w-9 h-9 rounded-xl border border-gray-200 text-gray-500 hover:border-primary-600 hover:text-primary-600 hover:bg-primary-50 font-bold flex items-center justify-center flex-shrink-0 transition-all duration-200";
 
 const SectionHeader = ({ title, icon }) => (
@@ -257,7 +257,7 @@ export default function EditarCotizacion() {
               </div>
               <div>
                 <label className={label}>Forma de pago</label>
-                <select className={input} value={cliente.pago || "Mensual"}
+                <select className={input} value={cliente.pago || "MES SERVIDO"}
                   onChange={(e) => setCliente((p) => ({ ...p, pago: e.target.value }))}>
                   {PAGOS.map((p) => <option key={p}>{p}</option>)}
                 </select>

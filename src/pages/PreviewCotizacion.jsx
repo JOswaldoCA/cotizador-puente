@@ -44,7 +44,24 @@ export default function PreviewCotizacion() {
       <style>{`
         @media print {
           .no-print { display: none !important; }
-          body { margin: 0; background: white !important; }
+          body { margin: 0 !important; padding: 0 !important; background: white !important; }
+          .py-8 { padding: 0 !important; }
+
+          /* Forzar una sola página */
+          #documento {
+            width: 100% !important;
+            min-height: unset !important;
+            margin: 0 !important;
+            padding: 6mm !important;
+            box-shadow: none !important;
+            border-radius: 0 !important;
+            font-size: 9px !important;
+          }
+
+          @page {
+            size: letter portrait;
+            margin: 6mm 8mm;
+          }
         }
         body { background: #F0F4F8; }
       `}</style>
@@ -97,11 +114,11 @@ export default function PreviewCotizacion() {
         <div
           id="documento"
           style={{
-            width: "210mm",
-            minHeight: "297mm",
+            width: "216mm",
+            minHeight: "279mm",
             margin: "0 auto",
             background: "#fff",
-            padding: "12mm 14mm",
+            padding: "8mm",
             fontFamily: "Arial, sans-serif",
             fontSize: "11px",
             color: "#111",
@@ -114,7 +131,7 @@ export default function PreviewCotizacion() {
           {/* ENCABEZADO */}
           <table
             width="100%"
-            style={{ borderCollapse: "collapse", marginBottom: 8 }}
+            style={{ borderCollapse: "collapse", marginBottom: 5 }}
           >
             <tbody>
               <tr>
@@ -122,15 +139,15 @@ export default function PreviewCotizacion() {
                   style={{
                     width: "45%",
                     verticalAlign: "middle",
-                    paddingRight: 16,
+                    paddingRight: 12,
                   }}
                 >
                   <img
                     src={logo}
                     alt="Puente Ambiental"
                     style={{
-                      maxWidth: 200,
-                      maxHeight: 80,
+                      maxWidth: 170,
+                      maxHeight: 60,
                       objectFit: "contain",
                     }}
                   />
@@ -139,8 +156,8 @@ export default function PreviewCotizacion() {
                   style={{
                     textAlign: "right",
                     verticalAlign: "top",
-                    fontSize: 11,
-                    lineHeight: 1.7,
+                    fontSize: 10,
+                    lineHeight: 1.5,
                   }}
                 >
                   <strong>{sucursal.nombre},</strong>
@@ -157,12 +174,12 @@ export default function PreviewCotizacion() {
           </table>
 
           {/* Línea divisora */}
-          <div style={{ borderBottom: "2px solid #1B3A6B", marginBottom: 8 }} />
+          <div style={{ borderBottom: "2px solid #1B3A6B", marginBottom: 5 }} />
 
           {/* FOLIO / FECHA / VIGENCIA */}
           <table
             width="100%"
-            style={{ borderCollapse: "collapse", marginBottom: 6 }}
+            style={{ borderCollapse: "collapse", marginBottom: 4 }}
           >
             <tbody>
               <tr>
@@ -170,8 +187,8 @@ export default function PreviewCotizacion() {
                 <td
                   style={{
                     border: "1px solid #ccc",
-                    padding: "3px 8px",
-                    fontSize: 10,
+                    padding: "2px 6px",
+                    fontSize: 9,
                     background: "#f8f8f8",
                   }}
                 >
@@ -180,8 +197,8 @@ export default function PreviewCotizacion() {
                 <td
                   style={{
                     border: "1px solid #ccc",
-                    padding: "3px 8px",
-                    fontSize: 10,
+                    padding: "2px 6px",
+                    fontSize: 9,
                     fontWeight: 700,
                     color: "#1B3A6B",
                   }}
@@ -194,8 +211,8 @@ export default function PreviewCotizacion() {
                 <td
                   style={{
                     border: "1px solid #ccc",
-                    padding: "3px 8px",
-                    fontSize: 10,
+                    padding: "2px 6px",
+                    fontSize: 9,
                     background: "#f8f8f8",
                   }}
                 >
@@ -204,8 +221,8 @@ export default function PreviewCotizacion() {
                 <td
                   style={{
                     border: "1px solid #ccc",
-                    padding: "3px 8px",
-                    fontSize: 10,
+                    padding: "2px 6px",
+                    fontSize: 9,
                   }}
                 >
                   {fecha}
@@ -216,8 +233,8 @@ export default function PreviewCotizacion() {
                 <td
                   style={{
                     border: "1px solid #ccc",
-                    padding: "3px 8px",
-                    fontSize: 10,
+                    padding: "2px 6px",
+                    fontSize: 9,
                     background: "#f8f8f8",
                   }}
                 >
@@ -226,8 +243,8 @@ export default function PreviewCotizacion() {
                 <td
                   style={{
                     border: "1px solid #ccc",
-                    padding: "3px 8px",
-                    fontSize: 10,
+                    padding: "2px 6px",
+                    fontSize: 9,
                   }}
                 >
                   {cliente.vigencia}
@@ -240,8 +257,9 @@ export default function PreviewCotizacion() {
           <div
             style={{
               borderBottom: "1px solid #ccc",
-              paddingBottom: 4,
-              marginBottom: 4,
+              paddingBottom: 3,
+              marginBottom: 3,
+              fontSize: 10.5,
             }}
           >
             <strong>ATENCION A: </strong>
@@ -250,17 +268,18 @@ export default function PreviewCotizacion() {
           <div
             style={{
               borderBottom: "1px solid #ccc",
-              paddingBottom: 4,
-              marginBottom: 10,
+              paddingBottom: 3,
+              marginBottom: 7,
+              fontSize: 10.5,
             }}
           >
             {cliente.atencion?.toUpperCase()}
           </div>
 
           {/* TEXTO INTRO */}
-          <div style={{ marginBottom: 12, lineHeight: 1.6, fontSize: 10.5 }}>
+          <div style={{ marginBottom: 8, lineHeight: 1.45, fontSize: 9.5 }}>
             {TEXTO_INTRO.split("\n\n").map((p, i) => (
-              <p key={i} style={{ margin: "0 0 6px" }}>
+              <p key={i} style={{ margin: "0 0 4px" }}>
                 {p}
               </p>
             ))}
@@ -269,15 +288,15 @@ export default function PreviewCotizacion() {
           {/* COTIZACIÓN */}
           <div
             style={{
-              marginBottom: 6,
+              marginBottom: 4,
               fontWeight: 700,
-              fontSize: 11,
+              fontSize: 10,
               color: "#1B3A6B",
             }}
           >
             COTIZACIÓN
           </div>
-          <div style={{ marginBottom: 10, lineHeight: 1.6, fontSize: 10.5 }}>
+          <div style={{ marginBottom: 7, lineHeight: 1.45, fontSize: 9.5 }}>
             Con base a la información compartida por usted, ponemos a su
             consideración la siguiente propuesta económica para el servicio de
             recolección, transporte y disposición final de residuos sólidos
@@ -287,16 +306,16 @@ export default function PreviewCotizacion() {
           {/* TABLA OPCIONES */}
           <table
             width="100%"
-            style={{ borderCollapse: "collapse", marginBottom: 12 }}
+            style={{ borderCollapse: "collapse", marginBottom: 8 }}
           >
             <thead>
               <tr style={{ background: "#FFD700" }}>
                 <th
                   style={{
                     border: "1px solid #999",
-                    padding: "5px 8px",
+                    padding: "3px 6px",
                     textAlign: "left",
-                    fontSize: 11,
+                    fontSize: 10,
                   }}
                 >
                   DESCRIPCIÓN
@@ -305,9 +324,9 @@ export default function PreviewCotizacion() {
                   colSpan={2}
                   style={{
                     border: "1px solid #999",
-                    padding: "5px 8px",
+                    padding: "3px 6px",
                     textAlign: "right",
-                    fontSize: 11,
+                    fontSize: 10,
                     width: "35%",
                   }}
                 >
@@ -325,9 +344,9 @@ export default function PreviewCotizacion() {
                         background: "#1B3A6B",
                         textAlign: "center",
                         fontWeight: 700,
-                        fontSize: 11,
+                        fontSize: 10,
                         border: "1px solid #1B3A6B",
-                        padding: "5px 8px",
+                        padding: "3px 6px",
                         color: "#FFD700",
                         letterSpacing: "1px",
                       }}
@@ -340,8 +359,8 @@ export default function PreviewCotizacion() {
                       <td
                         style={{
                           border: "1px solid #ccc",
-                          padding: "4px 8px",
-                          fontSize: 10.5,
+                          padding: "3px 6px",
+                          fontSize: 9.5,
                         }}
                       >
                         <strong>
@@ -358,8 +377,8 @@ export default function PreviewCotizacion() {
                       <td
                         style={{
                           border: "1px solid #ccc",
-                          padding: "4px 8px",
-                          fontSize: 10,
+                          padding: "3px 6px",
+                          fontSize: 9,
                           textAlign: "right",
                           whiteSpace: "nowrap",
                           background: "#fafafa",
@@ -370,10 +389,10 @@ export default function PreviewCotizacion() {
                       <td
                         style={{
                           border: "1px solid #ccc",
-                          padding: "4px 8px",
-                          fontSize: 10,
+                          padding: "3px 6px",
+                          fontSize: 9,
                           textAlign: "right",
-                          minWidth: 70,
+                          minWidth: 65,
                         }}
                       >
                         {(
@@ -385,13 +404,13 @@ export default function PreviewCotizacion() {
                   ))}
                   <tr key={`iva-${i}`}>
                     <td
-                      style={{ border: "1px solid #ccc", padding: "4px 8px" }}
+                      style={{ border: "1px solid #ccc", padding: "3px 6px" }}
                     ></td>
                     <td
                       style={{
                         border: "1px solid #ccc",
-                        padding: "4px 8px",
-                        fontSize: 10,
+                        padding: "3px 6px",
+                        fontSize: 9,
                         textAlign: "right",
                         background: "#fafafa",
                       }}
@@ -401,8 +420,8 @@ export default function PreviewCotizacion() {
                     <td
                       style={{
                         border: "1px solid #ccc",
-                        padding: "4px 8px",
-                        fontSize: 10,
+                        padding: "3px 6px",
+                        fontSize: 9,
                         textAlign: "right",
                       }}
                     >
@@ -413,13 +432,13 @@ export default function PreviewCotizacion() {
                   </tr>
                   <tr key={`total-${i}`}>
                     <td
-                      style={{ border: "1px solid #ccc", padding: "4px 8px" }}
+                      style={{ border: "1px solid #ccc", padding: "3px 6px" }}
                     ></td>
                     <td
                       style={{
                         border: "1px solid #ccc",
-                        padding: "4px 8px",
-                        fontSize: 10,
+                        padding: "3px 6px",
+                        fontSize: 9,
                         textAlign: "right",
                         fontWeight: 700,
                         background: "#EEF2FF",
@@ -431,8 +450,8 @@ export default function PreviewCotizacion() {
                     <td
                       style={{
                         border: "1px solid #ccc",
-                        padding: "4px 8px",
-                        fontSize: 10,
+                        padding: "3px 6px",
+                        fontSize: 9,
                         textAlign: "right",
                         fontWeight: 700,
                         background: "#EEF2FF",
@@ -451,12 +470,12 @@ export default function PreviewCotizacion() {
 
           {/* NOTAS */}
           {cot.cliente?.notas && (
-            <div style={{ marginBottom: 10 }}>
+            <div style={{ marginBottom: 7 }}>
               <div
                 style={{
                   fontWeight: 700,
-                  fontSize: 11,
-                  marginBottom: 4,
+                  fontSize: 10,
+                  marginBottom: 3,
                   color: "#1B3A6B",
                 }}
               >
@@ -464,12 +483,12 @@ export default function PreviewCotizacion() {
               </div>
               <div
                 style={{
-                  fontSize: 10.5,
-                  lineHeight: 1.6,
+                  fontSize: 9.5,
+                  lineHeight: 1.5,
                   border: "1px solid #e5e7eb",
                   borderLeft: "3px solid #1B3A6B",
                   borderRadius: 4,
-                  padding: "6px 10px",
+                  padding: "4px 8px",
                   background: "#fafafa",
                 }}
               >
@@ -482,8 +501,8 @@ export default function PreviewCotizacion() {
           <div
             style={{
               fontWeight: 700,
-              fontSize: 11,
-              marginBottom: 4,
+              fontSize: 10,
+              marginBottom: 3,
               color: "#1B3A6B",
             }}
           >
@@ -496,8 +515,8 @@ export default function PreviewCotizacion() {
                   style={{
                     verticalAlign: "top",
                     width: "55%",
-                    fontSize: 9.5,
-                    lineHeight: 1.7,
+                    fontSize: 8.5,
+                    lineHeight: 1.6,
                     paddingRight: 12,
                   }}
                 >
@@ -517,8 +536,8 @@ export default function PreviewCotizacion() {
                   style={{
                     verticalAlign: "top",
                     textAlign: "right",
-                    fontSize: 10.5,
-                    lineHeight: 1.9,
+                    fontSize: 9.5,
+                    lineHeight: 1.7,
                   }}
                 >
                   <strong style={{ color: "#1B3A6B" }}>
@@ -540,10 +559,10 @@ export default function PreviewCotizacion() {
           <div
             style={{
               borderTop: "2px solid #1B3A6B",
-              marginTop: 16,
-              paddingTop: 8,
+              marginTop: 10,
+              paddingTop: 5,
               textAlign: "center",
-              fontSize: 9,
+              fontSize: 8,
               color: "#6B7280",
             }}
           >
