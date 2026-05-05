@@ -559,7 +559,7 @@ export default function PreviewCotizacion() {
           <div
             style={{
               borderTop: "2px solid #1B3A6B",
-              marginTop: 10,
+              marginTop: 300,
               paddingTop: 5,
               textAlign: "center",
               fontSize: 8,
