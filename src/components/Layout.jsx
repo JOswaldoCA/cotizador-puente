@@ -26,6 +26,15 @@ function SidebarContent({ perfil, sucursalLabel, navItem, logout }) {
         {navItem("/", "📊", "Dashboard")}
         {navItem("/nueva", "📝", "Nueva cotización")}
         {navItem("/cotizaciones", "📋", "Historial")}
+
+        {perfil?.rol === "admin" && (
+          <>
+            <p className="text-blue-400/50 text-xs font-semibold uppercase tracking-widest px-4 mb-2 mt-3">
+              Administración
+            </p>
+            {navItem("/admin/usuarios", "👥", "Usuarios")}
+          </>
+        )}
       </nav>
 
       <div className="p-4 border-t border-white/10">
