@@ -13,73 +13,59 @@ import EditarCotizacion from "./pages/EditarCotizacion";
 import RecuperarPassword from "./pages/RecuperarPassword";
 import NuevaPassword from "./pages/NuevaPassword";
 import Confirmado from "./pages/Confirmado";
-import Usuarios from './pages/Admin/Usuarios';
+import Usuarios from './pages/Admin/Usuarios'
+import Bitacora from './pages/Admin/Bitacora'
 
 function RutaProtegida({ children }) {
   const { usuario, cargando } = useAuth();
-  if (cargando)
-    return (
-      <div className="min-h-screen flex items-center justify-center text-gray-400 text-sm">
-        Cargando...
-      </div>
-    );
+  if (cargando) return (
+    <div className="min-h-screen flex items-center justify-center text-gray-400 text-sm">
+      Cargando...
+    </div>
+  );
   return usuario ? children : <Navigate to="/login" replace />;
 }
 
 export default function App() {
   useEffect(() => {
-    const { data: listener } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        if (event === "SIGNED_IN" && session?.user) {
-          const confirmedAt = session.user.email_confirmed_at;
-          if (confirmedAt) {
-            const segundos =
-              (Date.now() - new Date(confirmedAt).getTime()) / 1000;
-            // Si se confirmó hace menos de 10 segundos es confirmación nueva
-            if (segundos < 10) {
-              supabase.auth.signOut().then(() => {
-                window.location.href = "/login?confirmado=true";
-              });
-            }
+    const { data: listener } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === "SIGNED_IN" && session?.user) {
+        const confirmedAt = session.user.email_confirmed_at;
+        if (confirmedAt) {
+          const segundos = (Date.now() - new Date(confirmedAt).getTime()) / 1000;
+          if (segundos < 10) {
+            supabase.auth.signOut().then(() => {
+              window.location.href = "/login?confirmado=true";
+            });
           }
         }
-      },
-    );
+      }
+    });
     return () => listener.subscription.unsubscribe();
   }, []);
+
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/login" element={<Login />} />
-        <Route path="/recuperar" element={<RecuperarPassword />} />
+        {/* Rutas públicas */}
+        <Route path="/login"          element={<Login />} />
+        <Route path="/recuperar"      element={<RecuperarPassword />} />
         <Route path="/nueva-password" element={<NuevaPassword />} />
-        <Route path="/registro" element={<Registro />} />
-        <Route path="/confirmado" element={<Confirmado />} />
-        <Route path="/admin/usuarios" element={<Usuarios />}/>
-        <Route
-          path="/"
-          element={
-            <RutaProtegida>
-              <Layout />
-            </RutaProtegida>
-          }
-        >
+        <Route path="/registro"       element={<Registro />} />
+        <Route path="/confirmado"     element={<Confirmado />} />
+
+        {/* Rutas protegidas con Layout */}
+        <Route path="/" element={<RutaProtegida><Layout /></RutaProtegida>}>
           <Route index element={<Dashboard />} />
           <Route path="nueva" element={<NuevaCotizacion />} />
           <Route path="cotizaciones" element={<Cotizaciones />} />
-          <Route
-            path="cotizaciones/:folio/editar"
-            element={<EditarCotizacion />}
-          />
+          <Route path="cotizaciones/:folio/editar" element={<EditarCotizacion />} />
+          <Route path="admin/usuarios" element={<Usuarios />} />
+          <Route path="admin/bitacora" element={<Bitacora />} />
         </Route>
-        <Route
-          path="/preview/:folio"
-          element={
-            <RutaProtegida>
-              <PreviewCotizacion />
-            </RutaProtegida>
-          }
-        />
+
+        {/* Preview sin Layout */}
+        <Route path="/preview/:folio" element={<RutaProtegida><PreviewCotizacion /></RutaProtegida>} />
       </Routes>
     </BrowserRouter>
   );

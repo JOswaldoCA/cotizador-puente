@@ -33,6 +33,7 @@ function SidebarContent({ perfil, sucursalLabel, navItem, logout }) {
               Administración
             </p>
             {navItem("/admin/usuarios", "👥", "Usuarios")}
+            {navItem("/admin/bitacora", "📋", "Bitácora")}
           </>
         )}
       </nav>
