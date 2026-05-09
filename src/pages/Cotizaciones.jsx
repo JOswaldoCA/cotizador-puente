@@ -13,6 +13,7 @@ import { useAuth } from "../hooks/useAuth";
 import { SUCURSALES } from "../utils/constantes";
 import { supabase } from "../services/supabase";
 import { exportarCotizacionesExcel } from "../utils/exportarExcel";
+import Tooltip from "../components/Tooltip";
 
 const ESTATUS = ["En revisión", "Aprobada", "Rechazada"];
 
@@ -63,7 +64,8 @@ export default function Cotizaciones() {
     if (perfil?.rol === "admin") {
       supabase
         .from("perfiles")
-        .select("id, nombre")
+        .select("id, nombre, puesto")
+        .eq("puesto", "vendedor") // ← solo vendedores
         .order("nombre")
         .then(({ data }) => setVendedores(data || []));
     }
@@ -194,7 +196,9 @@ export default function Cotizaciones() {
     fechaHasta;
 
   const puedeEditar = (cot) =>
-    perfil?.rol === "admin" || cot.usuario_id === perfil?.id;
+    perfil?.rol === "admin" ||
+    perfil?.puesto === "gerente" || // ← agrega esto
+    cot.usuario_id === perfil?.id;
 
   const meses = {
     enero: 0,
@@ -700,47 +704,59 @@ export default function Cotizaciones() {
                         )}
                         <td className="px-5 py-4">
                           <div className="flex items-center justify-end gap-1.5">
-                            <button
-                              onClick={() =>
-                                window.open(`/preview/${cot.folio}`, "_blank")
-                              }
-                              className="text-xs font-semibold px-3 py-1.5 rounded-lg text-white"
-                              style={{
-                                background:
-                                  "linear-gradient(135deg, #1B3A6B, #0F2347)",
-                              }}
-                            >
-                              PDF
-                            </button>
-                            {puedeEditar(cot) && (
+                            <Tooltip text="Ver PDF">
                               <button
                                 onClick={() =>
-                                  navigate(`/cotizaciones/${cot.folio}/editar`)
+                                  window.open(`/preview/${cot.folio}`, "_blank")
                                 }
-                                className="text-xs px-3 py-1.5 rounded-lg border border-gray-200 text-gray-500 hover:border-primary-600 hover:text-primary-600 hover:bg-primary-50 transition-all"
+                                className="text-xs font-semibold px-3 py-1.5 rounded-lg text-white"
+                                style={{
+                                  background:
+                                    "linear-gradient(135deg, #1B3A6B, #0F2347)",
+                                }}
                               >
-                                ✏️
+                                PDF
                               </button>
-                            )}
-                            <button
-                              onClick={() => abrirEmailModal(cot)}
-                              className="text-xs px-3 py-1.5 rounded-lg border border-primary-100 text-primary-600 hover:bg-primary-50 transition-all"
-                            >
-                              ✉️
-                            </button>
-                            <button
-                              onClick={() => abrirSeguimiento(cot)}
-                              className="text-xs px-3 py-1.5 rounded-lg border border-amber-200 text-amber-600 hover:bg-amber-50 transition-all"
-                            >
-                              📋
-                            </button>
+                            </Tooltip>
                             {puedeEditar(cot) && (
+                              <Tooltip text="Editar cotización">
+                                <button
+                                  onClick={() =>
+                                    navigate(
+                                      `/cotizaciones/${cot.folio}/editar`,
+                                    )
+                                  }
+                                  className="text-xs px-3 py-1.5 rounded-lg border border-gray-200 text-gray-500 hover:border-primary-600 hover:text-primary-600 hover:bg-primary-50 transition-all"
+                                >
+                                  ✏️
+                                </button>
+                              </Tooltip>
+                            )}
+                            <Tooltip text="Enviar por correo">
                               <button
-                                onClick={() => eliminar(cot.folio)}
-                                className="text-xs px-3 py-1.5 rounded-lg border border-red-100 text-red-400 hover:bg-red-50 transition-all"
+                                onClick={() => abrirEmailModal(cot)}
+                                className="text-xs px-3 py-1.5 rounded-lg border border-primary-100 text-primary-600 hover:bg-primary-50 transition-all"
                               >
-                                🗑️
+                                ✉️
                               </button>
+                            </Tooltip>
+                            <Tooltip text="Ver seguimiento">
+                              <button
+                                onClick={() => abrirSeguimiento(cot)}
+                                className="text-xs px-3 py-1.5 rounded-lg border border-amber-200 text-amber-600 hover:bg-amber-50 transition-all"
+                              >
+                                📋
+                              </button>
+                            </Tooltip>
+                            {puedeEditar(cot) && (
+                              <Tooltip text="Eliminar cotización">
+                                <button
+                                  onClick={() => eliminar(cot.folio)}
+                                  className="text-xs px-3 py-1.5 rounded-lg border border-red-100 text-red-400 hover:bg-red-50 transition-all"
+                                >
+                                  🗑️
+                                </button>
+                              </Tooltip>
                             )}
                           </div>
                         </td>

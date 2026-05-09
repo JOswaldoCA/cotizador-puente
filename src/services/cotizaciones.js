@@ -82,46 +82,65 @@ export async function guardarCotizacion(cot) {
 
 // ── obtenerCotizaciones ──────────────────────────────────────────
 export async function obtenerCotizaciones() {
-  const { data, error } = await supabase
-    .from("cotizaciones")
-    .select("*, cotizacion_opciones(*)")
-    .order("created_at", { ascending: false });
+  const { data: { user } } = await supabase.auth.getUser()
+  
+  // Obtener perfil para saber rol y puesto
+  const { data: perfil } = await supabase
+    .from('perfiles')
+    .select('rol, puesto')
+    .eq('id', user.id)
+    .single()
 
-  if (error) throw error;
+  // Admin o Gerente ven todas
+  const esAdmin   = perfil?.rol === 'admin'
+  const esGerente = perfil?.puesto === 'gerente'
 
-  return data.map((c) => ({
-    id: c.id,
-    folio: c.folio,
-    fecha: c.fecha,
-    estatus: c.estatus || "En revisión",
-    notas_seguimiento: c.notas_seguimiento || "",
-    usuario_id: c.usuario_id,
-    basesExtra: c.bases_extra || [],
+  let query = supabase
+    .from('cotizaciones')
+    .select('*, cotizacion_opciones(*)')
+    .order('created_at', { ascending: false })
+
+  // Si no es admin ni gerente, solo ve las suyas
+  if (!esAdmin && !esGerente) {
+    query = query.eq('usuario_id', user.id)
+  }
+
+  const { data, error } = await query
+  if (error) throw error
+
+  return data.map(c => ({
+    id:                c.id,
+    folio:             c.folio,
+    fecha:             c.fecha,
+    estatus:           c.estatus || 'En revisión',
+    notas_seguimiento: c.notas_seguimiento || '',
+    usuario_id:        c.usuario_id,
+    basesExtra:        c.bases_extra || [],
     sucursal: {
-      id: c.sucursal_id,
-      tipo: c.sucursal_tipo,
-      nombre: c.sucursal_nombre,
+      id:        c.sucursal_id,
+      tipo:      c.sucursal_tipo,
+      nombre:    c.sucursal_nombre,
       direccion: c.sucursal_direccion,
-      ciudad: c.sucursal_ciudad,
-      cp: c.sucursal_cp,
+      ciudad:    c.sucursal_ciudad,
+      cp:        c.sucursal_cp,
     },
     cliente: {
       atencion: c.cliente_atencion,
       contacto: c.cliente_contacto,
       vigencia: c.cliente_vigencia,
-      pago: c.cliente_pago,
-      email: c.cliente_email,
-      notas: c.cliente_notas,
+      pago:     c.cliente_pago,
+      email:    c.cliente_email,
+      notas:    c.cliente_notas,
     },
     opciones: c.cotizacion_opciones
       .sort((a, b) => a.numero - b.numero)
-      .map((op) => ({
+      .map(op => ({
         servicios: op.servicios || [],
-        subtotal: op.subtotal,
-        iva: op.iva,
-        total: op.total,
+        subtotal:  op.subtotal,
+        iva:       op.iva,
+        total:     op.total,
       })),
-  }));
+  }))
 }
 
 // ── eliminarCotizacion ───────────────────────────────────────────

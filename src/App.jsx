@@ -13,8 +13,9 @@ import EditarCotizacion from "./pages/EditarCotizacion";
 import RecuperarPassword from "./pages/RecuperarPassword";
 import NuevaPassword from "./pages/NuevaPassword";
 import Confirmado from "./pages/Confirmado";
-import Usuarios from './pages/Admin/Usuarios'
-import Bitacora from './pages/Admin/Bitacora'
+import Usuarios from './pages/Admin/Usuarios';
+import Bitacora from './pages/Admin/Bitacora';
+import Perfil from './pages/Perfil';
 
 function RutaProtegida({ children }) {
   const { usuario, cargando } = useAuth();
@@ -58,6 +59,7 @@ export default function App() {
         <Route path="/nueva-password" element={<NuevaPassword />} />
         <Route path="/registro"       element={<Registro />} />
         <Route path="/confirmado"     element={<Confirmado />} />
+        
 
         {/* Rutas protegidas con Layout */}
         <Route path="/" element={<RutaProtegida><Layout /></RutaProtegida>}>
@@ -67,6 +69,7 @@ export default function App() {
           <Route path="cotizaciones/:folio/editar" element={<EditarCotizacion />} />
           <Route path="admin/usuarios" element={<Usuarios />} />
           <Route path="admin/bitacora" element={<Bitacora />} />
+          <Route path="perfil" element={<Perfil/>} />
         </Route>
 
         {/* Preview sin Layout */}

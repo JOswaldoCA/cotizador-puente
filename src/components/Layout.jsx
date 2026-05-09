@@ -1,30 +1,33 @@
-import { useState } from 'react'
-import { Outlet, NavLink, useNavigate } from 'react-router-dom'
-import { useAuth } from '../hooks/useAuth'
-import { useNotificaciones } from '../hooks/useNotificaciones'
-import logo from '../assets/logoPA.png'
+import { useState } from "react";
+import { Outlet, NavLink, useNavigate } from "react-router-dom";
+import { useAuth } from "../hooks/useAuth";
+import { useNotificaciones } from "../hooks/useNotificaciones";
+import logo from "../assets/logoPA.png";
 
 // ← FUERA de todo, al inicio del archivo
-const LAYOUT_TS = new Date().getTime()
+const LAYOUT_TS = new Date().getTime();
 
 function tiempoDesde(fecha) {
-  if (!fecha) return ''
-  const diff = LAYOUT_TS - new Date(fecha).getTime()
-  const min  = Math.floor(diff / 60000)
-  const hrs  = Math.floor(diff / 3600000)
-  const dias = Math.floor(diff / 86400000)
-  if (min < 2)   return 'ahora'
-  if (min < 60)  return `${min}m`
-  if (hrs < 24)  return `${hrs}h`
-  return `${dias}d`
+  if (!fecha) return "";
+  const diff = LAYOUT_TS - new Date(fecha).getTime();
+  const min = Math.floor(diff / 60000);
+  const hrs = Math.floor(diff / 3600000);
+  const dias = Math.floor(diff / 86400000);
+  if (min < 2) return "ahora";
+  if (min < 60) return `${min}m`;
+  if (hrs < 24) return `${hrs}h`;
+  return `${dias}d`;
 }
 
 function SidebarContent({ perfil, sucursalLabel, navItem, logout }) {
   return (
     <>
       <div className="px-5 pt-6 pb-5 border-b border-white/10">
-        <img src={logo} alt="Puente Ambiental"
-          className="h-14 w-full object-contain object-left" />
+        <img
+          src={logo}
+          alt="Puente Ambiental"
+          className="h-14 w-full object-contain object-left"
+        />
         <div className="flex items-center gap-2 mt-3">
           <div className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse"></div>
           <p className="text-blue-300/70 text-xs">Sistema de cotizaciones</p>
@@ -35,184 +38,247 @@ function SidebarContent({ perfil, sucursalLabel, navItem, logout }) {
         <p className="text-blue-400/50 text-xs font-semibold uppercase tracking-widest px-4 mb-2">
           Menú
         </p>
-        {navItem('/', '📊', 'Dashboard')}
-        {navItem('/nueva', '📝', 'Nueva cotización')}
-        {navItem('/cotizaciones', '📋', 'Historial')}
+        {navItem("/", "📊", "Dashboard")}
+        {navItem("/nueva", "📝", "Nueva cotización")}
+        {navItem("/cotizaciones", "📋", "Historial")}
 
-        {perfil?.rol === 'admin' && (
+        {perfil?.rol === "admin" && ( // ← ya está así, no cambia
           <>
             <p className="text-blue-400/50 text-xs font-semibold uppercase tracking-widest px-4 mb-2 mt-4">
               Administración
             </p>
-            {navItem('/admin/usuarios', '👥', 'Usuarios')}
-            {navItem('/admin/bitacora', '📋', 'Bitácora')}
+            {navItem("/admin/usuarios", "👥", "Usuarios")}
+            {navItem("/admin/bitacora", "📋", "Bitácora")}
           </>
         )}
       </nav>
 
       <div className="p-4 border-t border-white/10">
         <div className="flex items-center gap-3 mb-3 px-1">
-          <div className="w-9 h-9 rounded-xl flex items-center justify-center text-primary-600 text-sm font-bold flex-shrink-0"
-            style={{ background: 'linear-gradient(135deg, #FFE566, #FFD700)' }}>
-            {perfil?.nombre?.charAt(0)?.toUpperCase() || 'U'}
+          <div
+            className="w-9 h-9 rounded-xl flex items-center justify-center text-primary-600 text-sm font-bold flex-shrink-0"
+            style={{ background: "linear-gradient(135deg, #FFE566, #FFD700)" }}
+          >
+            {perfil?.nombre?.charAt(0)?.toUpperCase() || "U"}
           </div>
           <div className="overflow-hidden flex-1">
-            <p className="text-white text-xs font-semibold truncate">{perfil?.nombre || 'Usuario'}</p>
+            <p className="text-white text-xs font-semibold truncate">
+              {perfil?.nombre || "Usuario"}
+            </p>
             <p className="text-blue-300/60 text-xs truncate">{sucursalLabel}</p>
           </div>
-          {perfil?.rol === 'admin' && (
+          {perfil?.rol === "admin" && (
             <span className="text-xs bg-accent-400/20 text-accent-300 font-semibold px-2 py-0.5 rounded-lg border border-accent-400/30 flex-shrink-0">
               Admin
             </span>
           )}
         </div>
-        <button onClick={logout}
-          className="w-full text-xs text-blue-300/70 hover:text-white border border-white/10 hover:border-white/30 rounded-xl py-2.5 transition-all duration-200 hover:bg-white/5 flex items-center justify-center gap-2">
+        <button
+          onClick={logout}
+          className="w-full text-xs text-blue-300/70 hover:text-white border border-white/10 hover:border-white/30 rounded-xl py-2.5 transition-all duration-200 hover:bg-white/5 flex items-center justify-center gap-2"
+        >
           <span>↩</span> Cerrar sesión
         </button>
       </div>
     </>
-  )
+  );
 }
 
 export default function Layout() {
-  const { logout, perfil }                                           = useAuth()
-  const { notificaciones, noLeidas, marcarLeida, marcarTodasLeidas } = useNotificaciones()
-  const navigate                                                     = useNavigate()
-  const [menuAbierto,    setMenuAbierto]    = useState(false)
-  const [campanaAbierta, setCampanaAbierta] = useState(false)
+  const { logout, perfil } = useAuth();
+  const { notificaciones, noLeidas, marcarLeida, marcarTodasLeidas } =
+    useNotificaciones();
+  const navigate = useNavigate();
+  const [menuAbierto, setMenuAbierto] = useState(false);
+  const [campanaAbierta, setCampanaAbierta] = useState(false);
 
-  const cerrarMenu = () => setMenuAbierto(false)
+  const cerrarMenu = () => setMenuAbierto(false);
 
-  const sucursalLabel = {
-    matriz:  'Matriz — Hermosillo',
-    guaymas: 'Suc. Guaymas',
-    obregon: 'Suc. Obregón',
-  }[perfil?.sucursal_id] || 'Sin sucursal'
+  const sucursalLabel =
+    {
+      matriz: "Matriz — Hermosillo",
+      guaymas: "Suc. Guaymas",
+      obregon: "Suc. Obregón",
+    }[perfil?.sucursal_id] || "Sin sucursal";
 
-  const sucursalTopbar = {
-    matriz:  'SUC. MATRIZ — Hermosillo, Sonora',
-    guaymas: 'SUC. GUAYMAS — Guaymas, Sonora',
-    obregon: 'SUC. OBREGÓN — Ciudad Obregón, Sonora',
-  }[perfil?.sucursal_id] || ''
+  const sucursalTopbar =
+    {
+      matriz: "SUC. MATRIZ — Hermosillo, Sonora",
+      guaymas: "SUC. GUAYMAS — Guaymas, Sonora",
+      obregon: "SUC. OBREGÓN — Ciudad Obregón, Sonora",
+    }[perfil?.sucursal_id] || "";
 
   const navItem = (to, icon, label) => (
-    <NavLink to={to} end={to === '/'}
+    <NavLink
+      to={to}
+      end={to === "/"}
       onClick={cerrarMenu}
       className={({ isActive }) =>
         `flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 ${
           isActive
-            ? 'bg-white/15 text-white shadow-sm border border-white/10'
-            : 'text-blue-200/80 hover:bg-white/8 hover:text-white'
+            ? "bg-white/15 text-white shadow-sm border border-white/10"
+            : "text-blue-200/80 hover:bg-white/8 hover:text-white"
         }`
-      }>
+      }
+    >
       <span className="text-base leading-none">{icon}</span>
       {label}
     </NavLink>
-  )
+  );
 
   const sidebarStyle = {
-    background: 'linear-gradient(180deg, #1B3A6B 0%, #0F2347 60%, #091629 100%)',
-    boxShadow:  '4px 0 24px rgba(9,22,41,0.15)',
-  }
+    background:
+      "linear-gradient(180deg, #1B3A6B 0%, #0F2347 60%, #091629 100%)",
+    boxShadow: "4px 0 24px rgba(9,22,41,0.15)",
+  };
 
   return (
-    <div className="min-h-screen flex" style={{ background: '#F0F4F8' }}>
-
+    <div className="min-h-screen flex" style={{ background: "#F0F4F8" }}>
       {/* SIDEBAR DESKTOP */}
-      <aside className="hidden lg:flex w-64 min-h-screen flex-col flex-shrink-0 fixed left-0 top-0 bottom-0 z-20"
-        style={sidebarStyle}>
-        <SidebarContent perfil={perfil} sucursalLabel={sucursalLabel} navItem={navItem} logout={logout} />
+      <aside
+        className="hidden lg:flex w-64 min-h-screen flex-col flex-shrink-0 fixed left-0 top-0 bottom-0 z-20"
+        style={sidebarStyle}
+      >
+        <SidebarContent
+          perfil={perfil}
+          sucursalLabel={sucursalLabel}
+          navItem={navItem}
+          logout={logout}
+        />
       </aside>
 
       {/* OVERLAY MÓVIL */}
       {menuAbierto && (
-        <div className="lg:hidden fixed inset-0 z-30"
-          style={{ background: 'rgba(9,22,41,0.6)', backdropFilter: 'blur(4px)' }}
-          onClick={cerrarMenu} />
+        <div
+          className="lg:hidden fixed inset-0 z-30"
+          style={{
+            background: "rgba(9,22,41,0.6)",
+            backdropFilter: "blur(4px)",
+          }}
+          onClick={cerrarMenu}
+        />
       )}
 
       {/* SIDEBAR MÓVIL */}
-      <aside className={`lg:hidden fixed left-0 top-0 bottom-0 z-40 w-72 flex flex-col transition-transform duration-300 ease-in-out ${
-          menuAbierto ? 'translate-x-0' : '-translate-x-full'
-        }`} style={sidebarStyle}>
-        <button onClick={cerrarMenu}
-          className="absolute top-4 right-4 w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center text-white hover:bg-white/20 transition-colors z-10">
+      <aside
+        className={`lg:hidden fixed left-0 top-0 bottom-0 z-40 w-72 flex flex-col transition-transform duration-300 ease-in-out ${
+          menuAbierto ? "translate-x-0" : "-translate-x-full"
+        }`}
+        style={sidebarStyle}
+      >
+        <button
+          onClick={cerrarMenu}
+          className="absolute top-4 right-4 w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center text-white hover:bg-white/20 transition-colors z-10"
+        >
           ✕
         </button>
-        <SidebarContent perfil={perfil} sucursalLabel={sucursalLabel} navItem={navItem} logout={logout} />
+        <SidebarContent
+          perfil={perfil}
+          sucursalLabel={sucursalLabel}
+          navItem={navItem}
+          logout={logout}
+        />
       </aside>
 
       {/* CONTENIDO */}
       <div className="flex-1 flex flex-col min-h-screen overflow-x-hidden lg:ml-64">
-
         {/* TOPBAR */}
-        <header className="sticky top-0 z-10 px-4 lg:px-8 py-3.5 flex items-center justify-between flex-shrink-0"
+        <header
+          className="sticky top-0 z-10 px-4 lg:px-8 py-3.5 flex items-center justify-between flex-shrink-0"
           style={{
-            background:     'rgba(240,244,248,0.85)',
-            backdropFilter: 'blur(12px)',
-            borderBottom:   '1px solid rgba(27,58,107,0.08)',
-            boxShadow:      '0 1px 3px rgba(27,58,107,0.06)',
-          }}>
-
+            background: "rgba(240,244,248,0.85)",
+            backdropFilter: "blur(12px)",
+            borderBottom: "1px solid rgba(27,58,107,0.08)",
+            boxShadow: "0 1px 3px rgba(27,58,107,0.06)",
+          }}
+        >
           <div className="flex items-center gap-3">
-            <button onClick={() => setMenuAbierto(true)}
+            <button
+              onClick={() => setMenuAbierto(true)}
               className="lg:hidden w-9 h-9 rounded-xl flex items-center justify-center transition-colors"
-              style={{ background: 'linear-gradient(135deg, #1B3A6B, #0F2347)' }}>
+              style={{
+                background: "linear-gradient(135deg, #1B3A6B, #0F2347)",
+              }}
+            >
               <span className="text-white text-lg leading-none">☰</span>
             </button>
             <div>
               <h1 className="text-sm font-bold text-primary-600 tracking-tight">
                 Puente Ambiental del Noroeste
               </h1>
-              <p className="text-xs text-gray-400 mt-0.5 hidden sm:block">{sucursalTopbar}</p>
+              <p className="text-xs text-gray-400 mt-0.5 hidden sm:block">
+                {sucursalTopbar}
+              </p>
             </div>
           </div>
 
           <div className="flex items-center gap-2 lg:gap-3">
-
             {/* CAMPANA */}
             <div className="relative">
-              <button onClick={() => setCampanaAbierta(prev => !prev)}
+              <button
+                onClick={() => setCampanaAbierta((prev) => !prev)}
                 className="relative w-9 h-9 rounded-xl flex items-center justify-center transition-all duration-200 hover:scale-105 active:scale-95"
                 style={{
-                  background: noLeidas > 0
-                    ? 'linear-gradient(135deg, #1B3A6B, #0F2347)'
-                    : 'rgba(27,58,107,0.08)',
-                }}>
-                <span className="text-base leading-none"
-                  style={{ color: noLeidas > 0 ? 'white' : '#1B3A6B' }}>
+                  background:
+                    noLeidas > 0
+                      ? "linear-gradient(135deg, #1B3A6B, #0F2347)"
+                      : "rgba(27,58,107,0.08)",
+                }}
+              >
+                <span
+                  className="text-base leading-none"
+                  style={{ color: noLeidas > 0 ? "white" : "#1B3A6B" }}
+                >
                   🔔
                 </span>
                 {noLeidas > 0 && (
-                  <div className="absolute -top-1 -right-1 w-5 h-5 rounded-full flex items-center justify-center text-white font-bold"
-                    style={{ background: 'linear-gradient(135deg, #EF4444, #DC2626)', fontSize: '10px' }}>
-                    {noLeidas > 9 ? '9+' : noLeidas}
+                  <div
+                    className="absolute -top-1 -right-1 w-5 h-5 rounded-full flex items-center justify-center text-white font-bold"
+                    style={{
+                      background: "linear-gradient(135deg, #EF4444, #DC2626)",
+                      fontSize: "10px",
+                    }}
+                  >
+                    {noLeidas > 9 ? "9+" : noLeidas}
                   </div>
                 )}
               </button>
 
               {campanaAbierta && (
                 <>
-                  <div className="fixed inset-0 z-40" onClick={() => setCampanaAbierta(false)} />
-                  <div className="absolute right-0 top-12 w-80 bg-white rounded-2xl border border-gray-100 overflow-hidden z-50"
-                    style={{ boxShadow: '0 20px 40px rgba(27,58,107,0.15)' }}>
-
-                    <div className="px-4 py-3 flex items-center justify-between"
-                      style={{ background: 'linear-gradient(135deg, #1B3A6B, #0F2347)' }}>
+                  <div
+                    className="fixed inset-0 z-40"
+                    onClick={() => setCampanaAbierta(false)}
+                  />
+                  <div
+                    className="absolute right-0 top-12 w-80 bg-white rounded-2xl border border-gray-100 overflow-hidden z-50"
+                    style={{ boxShadow: "0 20px 40px rgba(27,58,107,0.15)" }}
+                  >
+                    <div
+                      className="px-4 py-3 flex items-center justify-between"
+                      style={{
+                        background: "linear-gradient(135deg, #1B3A6B, #0F2347)",
+                      }}
+                    >
                       <div className="flex items-center gap-2">
                         <span className="text-white text-sm">🔔</span>
-                        <p className="text-white text-xs font-bold">Notificaciones</p>
+                        <p className="text-white text-xs font-bold">
+                          Notificaciones
+                        </p>
                         {noLeidas > 0 && (
-                          <span className="text-xs font-bold px-2 py-0.5 rounded-full text-primary-600"
-                            style={{ background: '#FFD700' }}>
+                          <span
+                            className="text-xs font-bold px-2 py-0.5 rounded-full text-primary-600"
+                            style={{ background: "#FFD700" }}
+                          >
                             {noLeidas}
                           </span>
                         )}
                       </div>
                       {noLeidas > 0 && (
-                        <button onClick={marcarTodasLeidas}
-                          className="text-xs text-blue-300 hover:text-white transition-colors font-medium">
+                        <button
+                          onClick={marcarTodasLeidas}
+                          className="text-xs text-blue-300 hover:text-white transition-colors font-medium"
+                        >
                           Marcar todas ✓
                         </button>
                       )}
@@ -222,44 +288,66 @@ export default function Layout() {
                       {notificaciones.length === 0 ? (
                         <div className="py-10 text-center">
                           <p className="text-3xl mb-2">🔕</p>
-                          <p className="text-xs text-gray-400 font-medium">Sin notificaciones</p>
+                          <p className="text-xs text-gray-400 font-medium">
+                            Sin notificaciones
+                          </p>
                         </div>
-                      ) : notificaciones.map(n => (
-                        <div key={n.id}
-                          onClick={() => {
-                            marcarLeida(n.id)
-                            setCampanaAbierta(false)
-                            navigate('/cotizaciones')
-                          }}
-                          className={`px-4 py-3 border-b border-gray-50 cursor-pointer hover:bg-primary-50/50 transition-colors flex gap-3 ${!n.leida ? 'bg-blue-50/30' : ''}`}>
-                          <div className="flex-shrink-0 pt-1.5">
-                            <div className={`w-2 h-2 rounded-full ${!n.leida ? 'bg-primary-600' : 'bg-transparent'}`}></div>
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className={`text-xs font-bold truncate ${!n.leida ? 'text-primary-600' : 'text-gray-700'}`}>
-                              {n.titulo}
-                            </p>
-                            <p className="text-xs text-gray-500 mt-0.5 leading-relaxed line-clamp-2">
-                              {n.mensaje}
-                            </p>
-                            <div className="flex items-center gap-2 mt-1">
-                              {n.folio && (
-                                <span className="font-mono text-xs text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded">
-                                  {n.folio}
+                      ) : (
+                        notificaciones.map((n) => (
+                          <div
+                            key={n.id}
+                            onClick={() => {
+                              marcarLeida(n.id);
+                              setCampanaAbierta(false);
+                              navigate("/cotizaciones");
+                            }}
+                            className={`px-4 py-3 border-b border-gray-50 cursor-pointer hover:bg-primary-50/50 transition-colors flex gap-3 ${!n.leida ? "bg-blue-50/30" : ""}`}
+                          >
+                            <div className="flex-shrink-0 pt-1.5">
+                              <div
+                                className={`w-2 h-2 rounded-full ${!n.leida ? "bg-primary-600" : "bg-transparent"}`}
+                              ></div>
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p
+                                className={`text-xs font-bold truncate ${!n.leida ? "text-primary-600" : "text-gray-700"}`}
+                              >
+                                {n.titulo}
+                              </p>
+                              <p className="text-xs text-gray-500 mt-0.5 leading-relaxed line-clamp-2">
+                                {n.mensaje}
+                              </p>
+                              <div className="flex items-center gap-2 mt-1">
+                                {n.folio && (
+                                  <span className="font-mono text-xs text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded">
+                                    {n.folio}
+                                  </span>
+                                )}
+                                <span className="text-xs text-gray-400">
+                                  {tiempoDesde(n.created_at)}
                                 </span>
-                              )}
-                              <span className="text-xs text-gray-400">{tiempoDesde(n.created_at)}</span>
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      ))}
+                        ))
+                      )}
                     </div>
 
                     {notificaciones.length > 0 && (
-                      <div className="px-4 py-3 border-t border-gray-100 text-center"
-                        style={{ background: 'linear-gradient(135deg, #F8FAFF, #EEF2FF)' }}>
-                        <button onClick={() => { setCampanaAbierta(false); navigate('/cotizaciones') }}
-                          className="text-xs font-bold text-primary-600 hover:text-primary-800 transition-colors">
+                      <div
+                        className="px-4 py-3 border-t border-gray-100 text-center"
+                        style={{
+                          background:
+                            "linear-gradient(135deg, #F8FAFF, #EEF2FF)",
+                        }}
+                      >
+                        <button
+                          onClick={() => {
+                            setCampanaAbierta(false);
+                            navigate("/cotizaciones");
+                          }}
+                          className="text-xs font-bold text-primary-600 hover:text-primary-800 transition-colors"
+                        >
                           Ver historial →
                         </button>
                       </div>
@@ -269,17 +357,42 @@ export default function Layout() {
               )}
             </div>
 
-            <div className="text-right hidden md:block">
-              <p className="text-xs font-medium text-gray-700">{perfil?.nombre}</p>
-              <p className="text-xs text-gray-400">{sucursalLabel}</p>
+            <div
+              className="flex items-center gap-3 cursor-pointer rounded-xl px-3 py-2 transition-all duration-200 hover:bg-primary-50 hidden md:flex group"
+              onClick={() => navigate("/perfil")}
+            >
+              <div
+                className="w-8 h-8 rounded-xl flex items-center justify-center text-primary-600 text-sm font-bold flex-shrink-0"
+                style={{
+                  background: "linear-gradient(135deg, #FFE566, #FFD700)",
+                }}
+              >
+                {perfil?.nombre?.charAt(0)?.toUpperCase() || "U"}
+              </div>
+              <div>
+                <div className="flex items-center gap-1">
+                  <p className="text-xs font-semibold text-gray-700">
+                    {perfil?.nombre || "Usuario"}
+                  </p>
+                  <span className="text-xs text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity">
+                    ✏️
+                  </span>
+                </div>
+                <p className="text-xs text-gray-400">{sucursalLabel}</p>
+              </div>
             </div>
 
-            <button onClick={() => { navigate('/nueva'); cerrarMenu() }}
+            <button
+              onClick={() => {
+                navigate("/nueva");
+                cerrarMenu();
+              }}
               className="flex items-center gap-1.5 text-xs font-semibold px-3 lg:px-4 py-2.5 rounded-xl text-white transition-all duration-200 hover:scale-105 active:scale-95"
               style={{
-                background: 'linear-gradient(135deg, #1B3A6B, #0F2347)',
-                boxShadow:  '0 2px 8px rgba(27,58,107,0.3)',
-              }}>
+                background: "linear-gradient(135deg, #1B3A6B, #0F2347)",
+                boxShadow: "0 2px 8px rgba(27,58,107,0.3)",
+              }}
+            >
               <span className="text-accent-400 font-bold text-sm">+</span>
               <span className="hidden sm:inline">Nueva cotización</span>
               <span className="sm:hidden">Nueva</span>
@@ -293,12 +406,12 @@ export default function Layout() {
 
         <footer className="px-4 lg:px-8 py-4 border-t border-gray-200/60 flex items-center justify-between">
           <p className="text-xs text-gray-400 hidden sm:block">
-            © {new Date().getFullYear()} Puente Ambiental del Noroeste S.A de C.V
+            © {new Date().getFullYear()} Puente Ambiental del Noroeste S.A de
+            C.V
           </p>
           <p className="text-xs text-gray-300">Sistema de Cotizaciones v1.0</p>
         </footer>
-
       </div>
     </div>
-  )
+  );
 }
