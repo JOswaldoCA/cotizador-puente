@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { generarPDFBase64 } from "../utils/generarPDF";
 import { obtenerCotizacion } from "../services/cotizaciones";
+import { supabase } from "../services/supabase";
 
 export default function ModalCotizacion({ folio, emailCliente }) {
   const navigate = useNavigate();
@@ -47,13 +48,30 @@ export default function ModalCotizacion({ folio, emailCliente }) {
         throw new Error(msg);
       }
       setEnviado(true);
+
+      // ← Registrar en bitácora
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      const { data: perfil } = await supabase
+        .from("perfiles")
+        .select("nombre, sucursal_id")
+        .eq("id", user.id)
+        .single();
+      await supabase.from("bitacora").insert({
+        usuario_id: user.id,
+        nombre_usuario: perfil?.nombre || "Usuario",
+        accion: "ENVIÓ CORREO",
+        folio,
+        detalle: `A: ${dest.join(", ")}`,
+        sucursal: cot.sucursal?.tipo || null,
+      });
     } catch (e) {
       setError("No se pudo enviar: " + e.message);
     }
     setProgreso("");
     setEnviando(false);
   };
-
   return (
     <div
       className="fixed inset-0 flex items-center justify-center z-50 px-4"

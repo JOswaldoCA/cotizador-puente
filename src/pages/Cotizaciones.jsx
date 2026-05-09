@@ -8,6 +8,8 @@ import { generarPDFBase64 } from "../utils/generarPDF";
 import { estaVencida } from "../utils/calculos";
 import { useAuth } from "../hooks/useAuth";
 import { SUCURSALES } from "../utils/constantes";
+import { supabase } from "../services/supabase";
+import { exportarCotizacionesExcel } from "../utils/exportarExcel";
 
 const ESTATUS = ["En revisión", "Aprobada", "Rechazada"];
 
@@ -41,6 +43,8 @@ export default function Cotizaciones() {
   const [nuevoEstatus,     setNuevoEstatus]     = useState("");
   const [notaEstatus,      setNotaEstatus]      = useState("");
   const [guardandoEst,     setGuardandoEst]     = useState(false);
+  const [pagina,           setPagina]           = useState(1);
+  const POR_PAGINA = 15;
 
   useEffect(() => {
     obtenerCotizaciones().then(setCotizaciones).finally(() => setCargando(false));
@@ -79,6 +83,16 @@ export default function Cotizaciones() {
       );
       if (!res.ok) throw new Error();
       setEnviado(true);
+      const { data: { user } } = await supabase.auth.getUser();
+      const { data: perfilData } = await supabase.from("perfiles").select("nombre, sucursal_id").eq("id", user.id).single();
+      await supabase.from("bitacora").insert({
+        usuario_id:     user.id,
+        nombre_usuario: perfilData?.nombre || "Usuario",
+        accion:         "ENVIÓ CORREO",
+        folio:          emailModal.folio,
+        detalle:        `A: ${dest.join(", ")}`,
+        sucursal:       cot.sucursal?.tipo || null,
+      });
     } catch (e) {
       setErrorEmail("No se pudo enviar: " + e.message);
     }
@@ -116,7 +130,11 @@ export default function Cotizaciones() {
 
   const puedeEditar = (cot) => perfil?.rol === "admin" || cot.usuario_id === perfil?.id;
 
-  const meses = { enero:0,febrero:1,marzo:2,abril:3,mayo:4,junio:5,julio:6,agosto:7,septiembre:8,octubre:9,noviembre:10,diciembre:11 };
+  const meses = {
+    enero:0, febrero:1, marzo:2, abril:3, mayo:4, junio:5,
+    julio:6, agosto:7, septiembre:8, octubre:9, noviembre:10, diciembre:11,
+  };
+
   const filtradas = cotizaciones.filter((c) => {
     const matchBusqueda =
       c.cliente?.contacto?.toLowerCase().includes(busqueda.toLowerCase()) ||
@@ -134,6 +152,9 @@ export default function Cotizaciones() {
     }
     return matchBusqueda && matchEstatus && matchSucursal && matchFecha;
   });
+
+  const totalPaginas = Math.ceil(filtradas.length / POR_PAGINA);
+  const paginadas    = filtradas.slice((pagina - 1) * POR_PAGINA, pagina * POR_PAGINA);
 
   if (cargando) return (
     <div className="flex justify-center items-center py-20 gap-3 text-gray-400 text-sm">
@@ -153,45 +174,57 @@ export default function Cotizaciones() {
               Historial
             </h2>
             <p className="text-sm text-gray-400 mt-0.5">
-              <span className="font-semibold text-primary-600">{filtradas.length}</span> de{" "}
-              <span className="font-semibold">{cotizaciones.length}</span> cotizaciones
+              Mostrando{" "}
+              <span className="font-semibold text-primary-600">
+                {filtradas.length === 0 ? 0 : Math.min((pagina - 1) * POR_PAGINA + 1, filtradas.length)}–{Math.min(pagina * POR_PAGINA, filtradas.length)}
+              </span>{" "}
+              de <span className="font-semibold">{filtradas.length}</span> cotizaciones
             </p>
           </div>
+          <button
+            onClick={() => exportarCotizacionesExcel(filtradas, "Cotizaciones-Puente-Ambiental")}
+            className="flex items-center gap-2 text-xs font-bold px-4 py-2.5 rounded-xl border transition-all duration-200 hover:scale-105 active:scale-95"
+            style={{ background: "linear-gradient(135deg, #ECFDF5, #D1FAE5)", borderColor: "#A7F3D0", color: "#065F46", boxShadow: "0 1px 3px rgba(16,185,129,0.1)" }}>
+            📊 Exportar Excel
+          </button>
         </div>
 
         {/* Filtros */}
         <div className="bg-white rounded-2xl border border-gray-100 p-4 flex flex-col gap-3"
-          style={{ boxShadow: '0 1px 3px rgba(27,58,107,0.06)' }}>
+          style={{ boxShadow: "0 1px 3px rgba(27,58,107,0.06)" }}>
           <div className="flex gap-2">
             <div className="flex-1 relative">
               <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 text-sm">🔍</span>
               <input type="text" placeholder="Buscar cliente o folio..."
-                value={busqueda} onChange={(e) => setBusqueda(e.target.value)}
+                value={busqueda}
+                onChange={(e) => { setBusqueda(e.target.value); setPagina(1); }}
                 className={inputCls + " w-full pl-9"} />
             </div>
-            <select value={filtroEstatus} onChange={(e) => setFiltroEstatus(e.target.value)}
+            <select value={filtroEstatus}
+              onChange={(e) => { setFiltroEstatus(e.target.value); setPagina(1); }}
               className={inputCls}>
               <option value="">Todos</option>
               {ESTATUS.map((e) => <option key={e}>{e}</option>)}
             </select>
           </div>
 
-          {/* Filtro sucursal admin */}
           {perfil?.rol === "admin" && (
-            <select value={filtroSucursal} onChange={(e) => setFiltroSucursal(e.target.value)}
+            <select value={filtroSucursal}
+              onChange={(e) => { setFiltroSucursal(e.target.value); setPagina(1); }}
               className={inputCls + " w-full"}>
               <option value="">Todas las sucursales</option>
               {SUCURSALES.map((s) => <option key={s.id} value={s.tipo}>{s.tipo}</option>)}
             </select>
           )}
 
-          {/* Filtro fechas */}
           <div className="flex items-center gap-2">
             <span className="text-xs text-gray-400 whitespace-nowrap font-medium">Desde</span>
-            <input type="date" value={fechaDesde} onChange={(e) => setFechaDesde(e.target.value)}
+            <input type="date" value={fechaDesde}
+              onChange={(e) => { setFechaDesde(e.target.value); setPagina(1); }}
               className={inputCls + " flex-1"} />
             <span className="text-xs text-gray-400 whitespace-nowrap font-medium">Hasta</span>
-            <input type="date" value={fechaHasta} onChange={(e) => setFechaHasta(e.target.value)}
+            <input type="date" value={fechaHasta}
+              onChange={(e) => { setFechaHasta(e.target.value); setPagina(1); }}
               className={inputCls + " flex-1"} />
             {(fechaDesde || fechaHasta) && (
               <button onClick={() => { setFechaDesde(""); setFechaHasta(""); }}
@@ -201,7 +234,6 @@ export default function Cotizaciones() {
             )}
           </div>
 
-          {/* Leyenda */}
           <div className="flex items-center gap-4 text-xs text-gray-400 pt-1 border-t border-gray-100">
             <div className="flex items-center gap-1.5">
               <div className="w-2.5 h-2.5 rounded-full bg-red-200 border border-red-300"></div>
@@ -214,27 +246,25 @@ export default function Cotizaciones() {
           </div>
         </div>
 
-        {/* Lista — CARDS en móvil, TABLA en desktop */}
+        {/* Lista */}
         {filtradas.length === 0 ? (
           <div className="bg-white rounded-2xl border border-gray-100 py-20 text-center"
-            style={{ boxShadow: '0 1px 3px rgba(27,58,107,0.06)' }}>
+            style={{ boxShadow: "0 1px 3px rgba(27,58,107,0.06)" }}>
             <p className="text-5xl mb-4">📋</p>
             <p className="text-sm font-medium text-gray-500">No se encontraron cotizaciones</p>
             <p className="text-xs text-gray-400 mt-1">Intenta ajustar los filtros</p>
           </div>
         ) : (
           <>
-            {/* CARDS — móvil */}
+            {/* CARDS móvil */}
             <div className="flex flex-col gap-3 lg:hidden">
-              {filtradas.map((cot) => {
+              {paginadas.map((cot) => {
                 const vencida = estaVencida(cot.fecha, cot.cliente?.vigencia);
                 return (
                   <div key={cot.folio}
-                    className={`bg-white rounded-2xl border overflow-hidden ${vencida ? 'border-red-200' : 'border-gray-100'}`}
-                    style={{ boxShadow: '0 1px 3px rgba(27,58,107,0.06)' }}>
-
-                    {/* Card header */}
-                    <div className={`px-4 py-3 flex items-center justify-between ${vencida ? 'bg-red-50' : 'bg-gray-50/50'}`}>
+                    className={`bg-white rounded-2xl border overflow-hidden ${vencida ? "border-red-200" : "border-gray-100"}`}
+                    style={{ boxShadow: "0 1px 3px rgba(27,58,107,0.06)" }}>
+                    <div className={`px-4 py-3 flex items-center justify-between ${vencida ? "bg-red-50" : "bg-gray-50/50"}`}>
                       <div>
                         <p className="font-bold text-gray-800 text-sm">{cot.cliente?.contacto || "—"}</p>
                         <p className="text-xs text-gray-400">{cot.cliente?.atencion}</p>
@@ -243,16 +273,11 @@ export default function Cotizaciones() {
                         {cot.estatus || "En revisión"}
                       </span>
                     </div>
-
-                    {/* Card body */}
                     <div className="px-4 py-3 flex flex-col gap-2">
                       <div className="flex items-center justify-between">
-                        <span className="font-mono text-xs text-gray-400 bg-gray-100 px-2 py-1 rounded-lg">
-                          {cot.folio}
-                        </span>
+                        <span className="font-mono text-xs text-gray-400 bg-gray-100 px-2 py-1 rounded-lg">{cot.folio}</span>
                         <span className="text-xs text-gray-400">{cot.fecha}</span>
                       </div>
-
                       <div className="flex items-center gap-2">
                         <span className="text-xs bg-primary-50 text-primary-600 font-semibold px-2.5 py-1 rounded-lg border border-primary-100">
                           {cot.sucursal?.tipo}
@@ -263,24 +288,21 @@ export default function Cotizaciones() {
                           </span>
                         )}
                       </div>
-
-                      {/* Opciones */}
                       <div className="flex flex-wrap gap-2">
                         {cot.opciones?.map((op, j) => (
                           <span key={j} className="text-xs text-gray-500 bg-gray-50 px-2 py-1 rounded-lg border border-gray-100">
-                            Op.{j + 1}: <span className="font-mono font-semibold text-primary-600">
+                            Op.{j + 1}:{" "}
+                            <span className="font-mono font-semibold text-primary-600">
                               ${op.total?.toLocaleString("es-MX", { minimumFractionDigits: 2 })}
                             </span>
                           </span>
                         ))}
                       </div>
                     </div>
-
-                    {/* Card actions */}
                     <div className="px-4 pb-4 grid grid-cols-5 gap-2">
                       <button onClick={() => window.open(`/preview/${cot.folio}`, "_blank")}
                         className="col-span-1 text-xs font-bold py-2.5 rounded-xl text-white text-center"
-                        style={{ background: 'linear-gradient(135deg, #1B3A6B, #0F2347)' }}>
+                        style={{ background: "linear-gradient(135deg, #1B3A6B, #0F2347)" }}>
                         PDF
                       </button>
                       {puedeEditar(cot) ? (
@@ -309,12 +331,12 @@ export default function Cotizaciones() {
               })}
             </div>
 
-            {/* TABLA — desktop */}
+            {/* TABLA desktop */}
             <div className="hidden lg:block bg-white rounded-2xl border border-gray-100 overflow-hidden"
-              style={{ boxShadow: '0 1px 3px rgba(27,58,107,0.06)' }}>
+              style={{ boxShadow: "0 1px 3px rgba(27,58,107,0.06)" }}>
               <table className="w-full">
                 <thead>
-                  <tr style={{ background: 'linear-gradient(135deg, #1B3A6B 0%, #0F2347 100%)' }}>
+                  <tr style={{ background: "linear-gradient(135deg, #1B3A6B 0%, #0F2347 100%)" }}>
                     <th className="px-5 py-3.5 text-left text-xs font-bold uppercase tracking-wider text-amber-300">Cliente</th>
                     <th className="px-5 py-3.5 text-left text-xs font-bold uppercase tracking-wider text-blue-200">Folio</th>
                     <th className="px-5 py-3.5 text-left text-xs font-bold uppercase tracking-wider text-blue-200">Fecha</th>
@@ -325,7 +347,7 @@ export default function Cotizaciones() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50">
-                  {filtradas.map((cot, i) => {
+                  {paginadas.map((cot, i) => {
                     const vencida = estaVencida(cot.fecha, cot.cliente?.vigencia);
                     return (
                       <tr key={cot.folio}
@@ -371,7 +393,7 @@ export default function Cotizaciones() {
                           <div className="flex items-center justify-end gap-1.5">
                             <button onClick={() => window.open(`/preview/${cot.folio}`, "_blank")}
                               className="text-xs font-semibold px-3 py-1.5 rounded-lg text-white"
-                              style={{ background: 'linear-gradient(135deg, #1B3A6B, #0F2347)' }}>
+                              style={{ background: "linear-gradient(135deg, #1B3A6B, #0F2347)" }}>
                               PDF
                             </button>
                             {puedeEditar(cot) && (
@@ -402,6 +424,39 @@ export default function Cotizaciones() {
                 </tbody>
               </table>
             </div>
+
+            {/* PAGINACIÓN — fuera de tabla y cards */}
+            {totalPaginas > 1 && (
+              <div className="flex items-center justify-center gap-2">
+                <button onClick={() => setPagina(p => Math.max(1, p - 1))}
+                  disabled={pagina === 1}
+                  className="text-xs font-bold px-4 py-2.5 rounded-xl border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-40 transition-all duration-200 hover:scale-105 active:scale-95">
+                  ← Anterior
+                </button>
+                <div className="flex items-center gap-1">
+                  {Array.from({ length: Math.min(5, totalPaginas) }, (_, i) => {
+                    const p = pagina <= 3 ? i + 1 : pagina - 2 + i;
+                    if (p < 1 || p > totalPaginas) return null;
+                    return (
+                      <button key={p} onClick={() => setPagina(p)}
+                        className="w-9 h-9 rounded-xl text-xs font-bold transition-all duration-200 hover:scale-105"
+                        style={p === pagina ? {
+                          background: 'linear-gradient(135deg, #1B3A6B, #0F2347)',
+                          color: 'white',
+                          boxShadow: '0 2px 8px rgba(27,58,107,0.3)',
+                        } : { border: '1px solid #E5E7EB', color: '#6B7280' }}>
+                        {p}
+                      </button>
+                    );
+                  })}
+                </div>
+                <button onClick={() => setPagina(p => Math.min(totalPaginas, p + 1))}
+                  disabled={pagina === totalPaginas}
+                  className="text-xs font-bold px-4 py-2.5 rounded-xl border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-40 transition-all duration-200 hover:scale-105 active:scale-95">
+                  Siguiente →
+                </button>
+              </div>
+            )}
           </>
         )}
       </div>
@@ -409,11 +464,11 @@ export default function Cotizaciones() {
       {/* Modal correo */}
       {emailModal && (
         <div className="fixed inset-0 flex items-center justify-center z-50 px-4"
-          style={{ background: 'rgba(9,22,41,0.6)', backdropFilter: 'blur(4px)' }}>
+          style={{ background: "rgba(9,22,41,0.6)", backdropFilter: "blur(4px)" }}>
           <div className="bg-white rounded-2xl w-full max-w-sm flex flex-col overflow-hidden"
-            style={{ boxShadow: '0 25px 50px rgba(9,22,41,0.25)' }}>
+            style={{ boxShadow: "0 25px 50px rgba(9,22,41,0.25)" }}>
             <div className="px-6 py-5 flex items-center justify-between"
-              style={{ background: 'linear-gradient(135deg, #1B3A6B 0%, #0F2347 100%)' }}>
+              style={{ background: "linear-gradient(135deg, #1B3A6B 0%, #0F2347 100%)" }}>
               <div>
                 <h2 className="text-base font-bold text-white">Enviar cotización</h2>
                 <p className="text-xs text-blue-300 font-mono mt-0.5">{emailModal.folio}</p>
@@ -448,7 +503,7 @@ export default function Cotizaciones() {
                   )}
                   <button onClick={enviarCorreo} disabled={enviando}
                     className="w-full text-white font-semibold text-sm py-3 rounded-xl disabled:opacity-50"
-                    style={{ background: 'linear-gradient(135deg, #1B3A6B, #0F2347)' }}>
+                    style={{ background: "linear-gradient(135deg, #1B3A6B, #0F2347)" }}>
                     {enviando ? "⏳ Enviando..." : "📤 Enviar correo"}
                   </button>
                 </>
@@ -465,11 +520,11 @@ export default function Cotizaciones() {
       {/* Modal seguimiento */}
       {seguimientoModal && (
         <div className="fixed inset-0 flex items-center justify-center z-50 px-4"
-          style={{ background: 'rgba(9,22,41,0.6)', backdropFilter: 'blur(4px)' }}>
+          style={{ background: "rgba(9,22,41,0.6)", backdropFilter: "blur(4px)" }}>
           <div className="bg-white rounded-2xl w-full max-w-md flex flex-col overflow-hidden"
-            style={{ boxShadow: '0 25px 50px rgba(9,22,41,0.25)' }}>
+            style={{ boxShadow: "0 25px 50px rgba(9,22,41,0.25)" }}>
             <div className="px-6 py-5 flex items-center justify-between"
-              style={{ background: 'linear-gradient(135deg, #1B3A6B 0%, #0F2347 100%)' }}>
+              style={{ background: "linear-gradient(135deg, #1B3A6B 0%, #0F2347 100%)" }}>
               <div>
                 <h2 className="text-base font-bold text-white">Seguimiento</h2>
                 <p className="text-xs text-blue-300 font-mono mt-0.5">{seguimientoModal.folio}</p>
@@ -480,12 +535,12 @@ export default function Cotizaciones() {
               <div className="flex items-center justify-between bg-gray-50 rounded-xl px-4 py-3 border border-gray-100">
                 <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Estatus actual</span>
                 <span className={`text-xs font-bold px-3 py-1 rounded-lg ${badgeEstatus(seguimientoModal.estatus)}`}>
-                  {seguimientoModal.estatus || 'En revisión'}
+                  {seguimientoModal.estatus || "En revisión"}
                 </span>
               </div>
               {puedeEditar(seguimientoModal) && (
                 <div className="flex flex-col gap-3 border border-gray-200 rounded-xl p-4"
-                  style={{ background: 'linear-gradient(135deg, #F8FAFF, #F0F4FF)' }}>
+                  style={{ background: "linear-gradient(135deg, #F8FAFF, #F0F4FF)" }}>
                   <p className="text-xs font-bold text-gray-600 uppercase tracking-widest">Actualizar estatus</p>
                   <select value={nuevoEstatus} onChange={(e) => setNuevoEstatus(e.target.value)}
                     className={inputCls + " w-full"}>
@@ -496,7 +551,7 @@ export default function Cotizaciones() {
                     rows={2} className={inputCls + " w-full resize-none"} />
                   <button onClick={guardarEstatus} disabled={guardandoEst}
                     className="text-white text-sm font-bold py-2.5 rounded-xl disabled:opacity-50"
-                    style={{ background: 'linear-gradient(135deg, #1B3A6B, #0F2347)' }}>
+                    style={{ background: "linear-gradient(135deg, #1B3A6B, #0F2347)" }}>
                     {guardandoEst ? "Guardando..." : "💾 Guardar cambio"}
                   </button>
                 </div>
@@ -516,7 +571,7 @@ export default function Cotizaciones() {
                   <div className="flex flex-col gap-2">
                     {historial.map((h) => (
                       <div key={h.id} className="border border-gray-100 rounded-xl px-4 py-3 bg-white"
-                        style={{ boxShadow: '0 1px 3px rgba(27,58,107,0.04)' }}>
+                        style={{ boxShadow: "0 1px 3px rgba(27,58,107,0.04)" }}>
                         <div className="flex items-center justify-between mb-2 flex-wrap gap-2">
                           <div className="flex items-center gap-2">
                             <span className={`text-xs font-semibold px-2 py-0.5 rounded-lg ${badgeEstatus(h.estatus_anterior)}`}>
