@@ -28,21 +28,26 @@ function RutaProtegida({ children }) {
 
 export default function App() {
   useEffect(() => {
-    const { data: listener } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === "SIGNED_IN" && session?.user) {
-        const confirmedAt = session.user.email_confirmed_at;
-        if (confirmedAt) {
-          const segundos = (Date.now() - new Date(confirmedAt).getTime()) / 1000;
-          if (segundos < 10) {
-            supabase.auth.signOut().then(() => {
-              window.location.href = "/login?confirmado=true";
-            });
-          }
+  const { data: listener } = supabase.auth.onAuthStateChange((event, session) => {
+    // Solo actuar en SIGNED_IN, no en INITIAL_SESSION
+    if (event === 'SIGNED_IN' && session?.user) {
+      const confirmedAt = session.user.email_confirmed_at
+      if (confirmedAt) {
+        const segundos = (Date.now() - new Date(confirmedAt).getTime()) / 1000
+        // Verificar que sea confirmación nueva Y que venga del flujo de confirmación
+        // usando el hash de la URL como indicador
+        const hash = window.location.hash
+        const isConfirmationFlow = hash.includes('access_token') || hash.includes('type=signup')
+        if (segundos < 30 && isConfirmationFlow) {
+          supabase.auth.signOut().then(() => {
+            window.location.href = '/login?confirmado=true'
+          })
         }
       }
-    });
-    return () => listener.subscription.unsubscribe();
-  }, []);
+    }
+  })
+  return () => listener.subscription.unsubscribe()
+}, [])
 
   return (
     <BrowserRouter>
