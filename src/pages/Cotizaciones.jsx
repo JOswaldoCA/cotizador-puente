@@ -153,6 +153,16 @@ export default function Cotizaciones() {
 
   const guardarEstatus = async () => {
     if (!nuevoEstatus) return;
+
+    // ← Confirmación antes de cambiar
+    const estatusActual = seguimientoModal.estatus || "En revisión";
+    if (nuevoEstatus === estatusActual) return; // no cambió nada
+
+    const confirmar = confirm(
+      `¿Confirmas cambiar el estatus de "${estatusActual}" a "${nuevoEstatus}"?${notaEstatus ? `\n\nNota: ${notaEstatus}` : ""}`,
+    );
+    if (!confirmar) return;
+
     setGuardandoEst(true);
     try {
       await actualizarEstatus(
@@ -319,7 +329,7 @@ export default function Cotizaciones() {
               </span>
               <input
                 type="text"
-                placeholder="Buscar cliente o folio..."
+                placeholder="Buscar por cliente, negocio o folio..."
                 value={busqueda}
                 onChange={(e) => {
                   setBusqueda(e.target.value);
