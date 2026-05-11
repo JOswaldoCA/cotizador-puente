@@ -353,7 +353,7 @@ export default function EditarCotizacion() {
               )}
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               <div>
                 <label className={label}>Atención a (negocio)</label>
                 <input
@@ -414,7 +414,7 @@ export default function EditarCotizacion() {
                   }
                 />
               </div>
-              <div className="col-span-2">
+              <div className="col-span-1 lg:col-span-2">
                 <label className={label}>Notas adicionales</label>
                 <textarea
                   className={input}
@@ -501,8 +501,8 @@ export default function EditarCotizacion() {
                               </button>
                             )}
                           </div>
-                          <div className="grid grid-cols-2 gap-3">
-                            <div className="col-span-2">
+                          <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+                            <div className="col-span-1 lg:col-span-2">
                               <label className={label}>
                                 Concepto de servicio
                               </label>
@@ -668,7 +668,7 @@ export default function EditarCotizacion() {
                                 </button>
                               </div>
                             </div>
-                            <div className="col-span-2">
+                            <div className="col-span-1 lg:col-span-2">
                               <div className="flex items-center justify-end gap-2 bg-gray-50 rounded-xl px-4 py-2.5 border border-gray-100">
                                 <span className="text-xs text-gray-400 font-medium">
                                   Subtotal línea:
