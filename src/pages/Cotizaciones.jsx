@@ -14,6 +14,7 @@ import { SUCURSALES } from "../utils/constantes";
 import { supabase } from "../services/supabase";
 import { exportarCotizacionesExcel } from "../utils/exportarExcel";
 import Tooltip from "../components/Tooltip";
+import { diasParaVencer } from "../utils/calculos";
 
 const ESTATUS = ["En revisión", "Aprobada", "Rechazada"];
 
@@ -417,6 +418,13 @@ export default function Cotizaciones() {
                 <div className="w-2.5 h-2.5 rounded-full bg-gray-200 border border-gray-300"></div>
                 <span>Vigente</span>
               </div>
+              <div className="flex items-center gap-1.5">
+                <div
+                  className="w-2.5 h-2.5 rounded-full border animate-pulse"
+                  style={{ background: "#FEF3C7", borderColor: "#FDE68A" }}
+                ></div>
+                <span>Vence pronto</span>
+              </div>
             </div>
             {hayFiltros && (
               <button
@@ -493,6 +501,26 @@ export default function Cotizaciones() {
                             ⚠️ Vencida
                           </span>
                         )}
+                        {(() => {
+                          const dias = diasParaVencer(
+                            cot.fecha,
+                            cot.cliente?.vigencia,
+                          );
+                          if (dias !== null && dias > 0 && dias <= 7)
+                            return (
+                              <span
+                                className="text-xs font-bold px-2.5 py-1 rounded-lg border animate-pulse"
+                                style={{
+                                  background: "#FFFBEB",
+                                  borderColor: "#FDE68A",
+                                  color: "#92400E",
+                                }}
+                              >
+                                ⏰ Vence en {dias}d
+                              </span>
+                            );
+                          return null;
+                        })()}
                         {perfil?.rol === "admin" && vendedor && (
                           <span className="text-xs bg-gray-50 text-gray-500 font-medium px-2 py-1 rounded-lg border border-gray-200">
                             👤 {vendedor.nombre}
@@ -656,6 +684,26 @@ export default function Cotizaciones() {
                                 ⚠️ Vencida
                               </span>
                             )}
+                            {(() => {
+                              const dias = diasParaVencer(
+                                cot.fecha,
+                                cot.cliente?.vigencia,
+                              );
+                              if (dias !== null && dias > 0 && dias <= 7)
+                                return (
+                                  <span
+                                    className="text-xs font-bold px-2.5 py-1 rounded-lg w-fit border animate-pulse"
+                                    style={{
+                                      background: "#FFFBEB",
+                                      borderColor: "#FDE68A",
+                                      color: "#92400E",
+                                    }}
+                                  >
+                                    ⏰ Vence en {dias}d
+                                  </span>
+                                );
+                              return null;
+                            })()}
                           </div>
                         </td>
                         <td className="px-5 py-4">
@@ -1022,6 +1070,7 @@ export default function Cotizaciones() {
                               {h.estatus_nuevo}
                             </span>
                           </div>
+
                           <span className="text-xs text-gray-400 font-mono">
                             {new Date(h.created_at).toLocaleDateString("es-MX")}
                           </span>

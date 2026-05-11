@@ -78,3 +78,36 @@ export function calcularTotalesOpcion(servicios) {
   const total    = subtotal + iva
   return { subtotal, iva, total }
 }
+
+export function diasParaVencer(fecha, vigencia) {
+  if (!fecha || !vigencia) return null
+
+  const meses = {
+    'enero': 0, 'febrero': 1, 'marzo': 2, 'abril': 3,
+    'mayo': 4, 'junio': 5, 'julio': 6, 'agosto': 7,
+    'septiembre': 8, 'octubre': 9, 'noviembre': 10, 'diciembre': 11,
+  }
+
+  const partes = fecha.toLowerCase().split(' de ')
+  if (partes.length < 3) return null
+
+  const dia = parseInt(partes[0])
+  const mes = meses[partes[1]]
+  const año = parseInt(partes[2])
+
+  if (isNaN(dia) || mes === undefined || isNaN(año)) return null
+
+  const fechaCot = new Date(año, mes, dia)
+
+  let dias = 30
+  if (vigencia.includes('15')) dias = 15
+  if (vigencia.includes('30')) dias = 30
+  if (vigencia.includes('1 MES')) dias = 30
+
+  const fechaVence = new Date(fechaCot)
+  fechaVence.setDate(fechaVence.getDate() + dias)
+
+  const hoy = new Date()
+  const diff = Math.ceil((fechaVence - hoy) / 86400000)
+  return diff // negativo = ya venció, positivo = días que faltan
+}
