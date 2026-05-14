@@ -15,6 +15,8 @@ import {
 } from "../utils/calculos";
 import ModalCotizacion from "../components/ModalCotizacion";
 import BasesEditor from "../components/BasesEditor";
+import { useAuth } from "../hooks/useAuth"; // ← agrega
+import { SUCURSALES } from "../utils/constantes"; // ← agrega
 
 const input =
   "border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-primary-600/20 focus:border-primary-600 w-full bg-white transition-all duration-200";
@@ -42,10 +44,12 @@ export default function EditarCotizacion() {
   const { folio: folioParam } = useParams();
   const navigate = useNavigate();
   const buscadorRef = useRef(null);
+  const { perfil } = useAuth(); // ← agrega
 
   const {
     folio,
     sucursal,
+    setSucursal, // ← agrega
     opciones,
     agregarOpcion,
     quitarOpcion,
@@ -68,6 +72,8 @@ export default function EditarCotizacion() {
   const [guardando, setGuardando] = useState(false);
   const [esVencida, setEsVencida] = useState(false);
   const [modalFolio, setModalFolio] = useState(null);
+  const puedeElegirSucursal =
+    perfil?.rol === "admin" || perfil?.puesto === "gerente"; // ← agrega
 
   useEffect(() => {
     Promise.all([
@@ -221,27 +227,83 @@ export default function EditarCotizacion() {
         </div>
 
         {/* Sucursal */}
-        <div
-          className="flex items-center gap-4 rounded-2xl px-5 py-4 border"
-          style={{
-            background: "linear-gradient(135deg, #EEF2FF, #DBEAFE)",
-            borderColor: "rgba(27,58,107,0.15)",
-            boxShadow: "0 1px 3px rgba(27,58,107,0.06)",
-          }}
-        >
+        {puedeElegirSucursal ? (
           <div
-            className="w-10 h-10 rounded-xl flex items-center justify-center text-xl flex-shrink-0"
-            style={{ background: "linear-gradient(135deg, #1B3A6B, #0F2347)" }}
+            className="bg-white rounded-2xl border border-gray-100 overflow-hidden"
+            style={{ boxShadow: "0 1px 3px rgba(27,58,107,0.06)" }}
           >
-            🏢
+            <div
+              className="px-6 py-4 border-b border-white/10 flex items-center gap-3"
+              style={{
+                background: "linear-gradient(135deg, #1B3A6B 0%, #0F2347 100%)",
+              }}
+            >
+              <span className="text-lg">🏢</span>
+              <h2 className="text-xs font-bold text-amber-300 uppercase tracking-widest">
+                Sucursal
+              </h2>
+            </div>
+            <div className="p-5 grid grid-cols-1 lg:grid-cols-3 gap-3">
+              {SUCURSALES.map((s) => (
+                <button
+                  key={s.id}
+                  type="button"
+                  onClick={() => setSucursal(s)}
+                  className={`flex items-center gap-3 px-4 py-3 rounded-xl border-2 transition-all duration-200 hover:scale-105 active:scale-95 text-left ${
+                    sucursal?.id === s.id
+                      ? "border-primary-600 bg-primary-50"
+                      : "border-gray-200 hover:border-primary-300"
+                  }`}
+                >
+                  <span className="text-xl flex-shrink-0">
+                    {s.id === "matriz"
+                      ? "🏙️"
+                      : s.id === "guaymas"
+                        ? "⚓"
+                        : "🌵"}
+                  </span>
+                  <div>
+                    <p
+                      className={`text-xs font-bold ${sucursal?.id === s.id ? "text-primary-600" : "text-gray-700"}`}
+                    >
+                      {s.tipo}
+                    </p>
+                    <p className="text-xs text-gray-400">{s.ciudad}</p>
+                  </div>
+                  {sucursal?.id === s.id && (
+                    <span className="ml-auto text-primary-600 font-bold">
+                      ✓
+                    </span>
+                  )}
+                </button>
+              ))}
+            </div>
           </div>
-          <div>
-            <p className="text-sm font-bold text-primary-600">
-              {sucursal?.tipo}
-            </p>
-            <p className="text-xs text-gray-500 mt-0.5">{sucursal?.ciudad}</p>
+        ) : (
+          <div
+            className="flex items-center gap-4 rounded-2xl px-5 py-4 border"
+            style={{
+              background: "linear-gradient(135deg, #EEF2FF, #DBEAFE)",
+              borderColor: "rgba(27,58,107,0.15)",
+              boxShadow: "0 1px 3px rgba(27,58,107,0.06)",
+            }}
+          >
+            <div
+              className="w-10 h-10 rounded-xl flex items-center justify-center text-xl flex-shrink-0"
+              style={{
+                background: "linear-gradient(135deg, #1B3A6B, #0F2347)",
+              }}
+            >
+              🏢
+            </div>
+            <div>
+              <p className="text-sm font-bold text-primary-600">
+                {sucursal?.tipo}
+              </p>
+              <p className="text-xs text-gray-500 mt-0.5">{sucursal?.ciudad}</p>
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Cliente */}
         <div
