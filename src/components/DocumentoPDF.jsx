@@ -17,12 +17,7 @@ const styles = StyleSheet.create({
     color: "#111",
     backgroundColor: "#ffffff",
   },
-
-  // Encabezado
   divider: { borderBottom: "2px solid #1B3A6B", marginBottom: 10 },
-  dividerLight: { borderBottom: "1px solid #e5e7eb", marginBottom: 8 },
-
-  // Folio / fecha
   fechaRow: {
     flexDirection: "row",
     justifyContent: "flex-end",
@@ -36,8 +31,6 @@ const styles = StyleSheet.create({
     color: "#1B3A6B",
   },
   fechaValor: { padding: "2 6", backgroundColor: "#ffffff" },
-
-  // Atención
   atencion: {
     fontSize: 10,
     fontFamily: "Helvetica-Bold",
@@ -46,15 +39,13 @@ const styles = StyleSheet.create({
     borderBottom: "1px solid #d1d5db",
     paddingBottom: 4,
   },
-  contacto: {
+  razonSocial: {
     fontSize: 9,
     color: "#374151",
     marginBottom: 10,
     borderBottom: "1px solid #d1d5db",
     paddingBottom: 4,
   },
-
-  // Texto
   intro: { fontSize: 8, lineHeight: 1.5, marginBottom: 6, color: "#4B5563" },
   cotLabel: {
     fontSize: 9,
@@ -63,8 +54,6 @@ const styles = StyleSheet.create({
     color: "#1B3A6B",
   },
   cotTexto: { fontSize: 8, lineHeight: 1.5, marginBottom: 6, color: "#4B5563" },
-
-  // Tabla
   border: { border: "1px solid #d1d5db" },
   tableHeader: { flexDirection: "row", backgroundColor: "#FFD700" },
   tableHeaderCell: {
@@ -108,10 +97,8 @@ const styles = StyleSheet.create({
     padding: "2 6",
     backgroundColor: "#EEF2FF",
   },
-
-  // Bases
   basesTitle: {
-    fontSize: 8,
+    fontSize: 9,
     fontFamily: "Helvetica-Bold",
     marginTop: 8,
     marginBottom: 3,
@@ -125,16 +112,8 @@ const styles = StyleSheet.create({
     lineHeight: 1.4,
     fontFamily: "Helvetica-Bold",
   },
-
-  // Footer
-  footer: {
-    borderTop: "2px solid #1B3A6B",
-    marginTop: 14,
-    paddingTop: 6,
-    flexDirection: "row",
-    justifyContent: "center",
-  },
-  footerText: { fontSize: 7, color: "#9CA3AF", textAlign: "center" },
+  footer: { borderTop: "2px solid #1B3A6B", marginTop: 14, paddingTop: 6 },
+  footerText: { fontSize: 7, color: "#4B5563" },
 });
 
 const fmt = (n) =>
@@ -155,44 +134,51 @@ export function DocumentoPDF({ cot }) {
             alignItems: "flex-start",
           }}
         >
-          <View style={{ width: "45%" }}>
+          {/* Logo más grande */}
+          <View style={{ width: "50%" }}>
             <Image
               src={logoBase64}
-              style={{ width: 160, height: 60, objectFit: "contain" }}
+              style={{ width: 200, height: 75, objectFit: "contain" }}
             />
           </View>
-          <View style={{ width: "50%", alignItems: "flex-end" }}>
+          {/* Info sucursal compacta en una línea */}
+          <View style={{ width: "48%", alignItems: "flex-end" }}>
             <Text
               style={{
-                fontSize: 8,
+                fontSize: 9,
                 fontFamily: "Helvetica-Bold",
                 color: "#1B3A6B",
                 textAlign: "right",
               }}
             >
-              Puente Ambiental del Noroeste S.A de C.V,
+              PUENTE AMBIENTAL DEL NOROESTE S.A DE C.V
             </Text>
             <Text
               style={{
-                fontSize: 8,
+                fontSize: 7.5,
                 color: "#4B5563",
                 textAlign: "right",
-                lineHeight: 1.6,
+                marginTop: 2,
               }}
             >
-              {sucursal?.tipo}.{"\n"}
-              {sucursal?.direccion}
-              {"\n"}
-              {sucursal?.cp}
-              {"\n"}
-              {sucursal?.ciudad}
+              {sucursal?.tipo}
+            </Text>
+            <Text
+              style={{
+                fontSize: 7.5,
+                color: "#4B5563",
+                textAlign: "right",
+                marginTop: 1,
+              }}
+            >
+              {sucursal?.direccion} {sucursal?.cp} {sucursal?.ciudad}
             </Text>
           </View>
         </View>
 
         <View style={styles.divider} />
 
-        {/* FOLIO / FECHA / VIGENCIA / FORMA DE PAGO */}
+        {/* FOLIO / FECHA / VIGENCIA / FACTURACIÓN */}
         <View style={styles.fechaRow}>
           <View style={styles.fechaBox}>
             <Text style={styles.fechaLabel}>FOLIO:</Text>
@@ -221,7 +207,7 @@ export function DocumentoPDF({ cot }) {
         </View>
         <View style={{ ...styles.fechaRow, marginBottom: 10 }}>
           <View style={styles.fechaBox}>
-            <Text style={styles.fechaLabel}>FORMA DE PAGO</Text>
+            <Text style={styles.fechaLabel}>FACTURACIÓN</Text>
             <Text
               style={{
                 ...styles.fechaValor,
@@ -234,11 +220,13 @@ export function DocumentoPDF({ cot }) {
           </View>
         </View>
 
-        {/* ATENCIÓN */}
+        {/* ATENCIÓN — contacto arriba, razón social abajo */}
         <Text style={styles.atencion}>
-          ATENCIÓN A: {cliente?.contacto?.toUpperCase()}
+          ATENCIÓN A: {cliente?.atencion?.toUpperCase()}
         </Text>
-        <Text style={styles.contacto}>{cliente?.atencion?.toUpperCase()}</Text>
+        <Text style={styles.razonSocial}>
+          RAZÓN SOCIAL: {cliente?.contacto?.toUpperCase()}
+        </Text>
 
         {/* INTRO */}
         <Text style={styles.intro}>
@@ -283,8 +271,7 @@ export function DocumentoPDF({ cot }) {
 
           {opciones?.map((op, i) => (
             <View key={i}>
-              <Text style={styles.opcionTitle}>OPCION {i + 1}</Text>
-
+              <Text style={styles.opcionTitle}>OPCIÓN {i + 1}</Text>
               {(op.servicios || []).map((srv, si) => {
                 const lineTotal =
                   srv.precioUnitario * srv.numContenedores +
@@ -312,8 +299,6 @@ export function DocumentoPDF({ cot }) {
                   </View>
                 );
               })}
-
-              {/* Totales */}
               <View
                 style={{
                   flexDirection: "row",
@@ -387,55 +372,90 @@ export function DocumentoPDF({ cot }) {
           </View>
         )}
 
-        {/* BASES */}
-        <Text style={styles.basesTitle}>BASES DE LA COTIZACION</Text>
-        <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
-          <View style={{ flex: 1.5 }}>
-            {BASES.map((b, i) => (
-              <Text key={i} style={styles.baseItem}>
-                • {b}
-              </Text>
-            ))}
-            {(cot.basesExtra || []).map((b, i) => (
-              <Text key={`extra-${i}`} style={styles.baseItemExtra}>
-                • {b}
-              </Text>
-            ))}
-          </View>
-          <View style={{ flex: 1, alignItems: "flex-end" }}>
-            <Text
-              style={{
-                fontSize: 9,
-                fontFamily: "Helvetica-Bold",
-                color: "#1B3A6B",
-                textAlign: "right",
-              }}
-            >
-              {sucursal?.nombre}
+        {/* BASES — sin info de sucursal a la derecha */}
+        <Text style={styles.basesTitle}>BASES DE LA COTIZACIÓN</Text>
+        <View>
+          {BASES.map((b, i) => (
+            <Text key={i} style={styles.baseItem}>
+              • {b}
             </Text>
-            <Text
-              style={{
-                fontSize: 8,
-                color: "#4B5563",
-                textAlign: "right",
-                lineHeight: 1.6,
-              }}
-            >
-              {sucursal?.direccion}
-              {"\n"}
-              {sucursal?.ciudad}
-              {"\n"}
-              {sucursal?.cp}
-              {"\n"}
-              {sucursal?.tipo}
+          ))}
+          {(cot.basesExtra || []).map((b, i) => (
+            <Text key={`extra-${i}`} style={styles.baseItemExtra}>
+              • {b}
             </Text>
-          </View>
+          ))}
         </View>
 
-        {/* FOOTER */}
+        {/* DATOS BANCARIOS */}
+        <View
+          style={{
+            marginTop: 8,
+            border: "1px solid #e5e7eb",
+            borderLeft: "3px solid #1B3A6B",
+            padding: "6 10",
+            backgroundColor: "#F8FAFF",
+          }}
+        >
+          <Text
+            style={{
+              fontSize: 8,
+              fontFamily: "Helvetica-Bold",
+              color: "#1B3A6B",
+              marginBottom: 4,
+            }}
+          >
+            DATOS BANCARIOS
+          </Text>
+          {[
+            ["RAZÓN SOCIAL", "PUENTE AMBIENTAL DEL NOROESTE SA DE CV"],
+            ["RFC", "PAN160504GI0"],
+            ["CORREO", "cobranza@puenteambiental.com.mx"],
+            ["BANCO", "BBVA"],
+            ["CUENTA BANCARIA", "0108825866"],
+            ["CLAVE INTERBANCARIA", "012760001088258664"],
+          ].map(([label, valor]) => (
+            <View key={label} style={{ flexDirection: "row", marginBottom: 2 }}>
+              <Text
+                style={{
+                  fontSize: 7.5,
+                  fontFamily: "Helvetica-Bold",
+                  color: "#374151",
+                  width: 100,
+                }}
+              >
+                {label}:
+              </Text>
+              <Text
+                style={{
+                  fontSize: 7.5,
+                  color: "#111",
+                  fontFamily:
+                    label === "CUENTA BANCARIA" ||
+                    label === "CLAVE INTERBANCARIA"
+                      ? "Helvetica-Bold"
+                      : "Helvetica",
+                }}
+              >
+                {valor}
+              </Text>
+            </View>
+          ))}
+        </View>
+
+        {/* PIE DE PÁGINA — info sucursal */}
         <View style={styles.footer}>
+          <Text
+            style={{
+              ...styles.footerText,
+              fontFamily: "Helvetica-Bold",
+              color: "#1B3A6B",
+            }}
+          >
+            PUENTE AMBIENTAL DEL NOROESTE S.A DE C.V
+          </Text>
           <Text style={styles.footerText}>
-            Puente Ambiental del Noroeste S.A de C.V · {sucursal?.ciudad} ·{" "}
+            {sucursal?.tipo} · {sucursal?.direccion} · {sucursal?.ciudad} ·{" "}
             {sucursal?.cp}
           </Text>
         </View>

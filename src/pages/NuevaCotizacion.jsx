@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useCotizacion } from "../hooks/useCotizacion";
-import { SUCURSALES } from "../utils/constantes";
+import { SUCURSALES, VIGENCIAS } from '../utils/constantes'
 import {
   fechaHoy,
   calcularServicio,
@@ -359,16 +359,16 @@ export default function NuevaCotizacion() {
                     setCliente((p) => ({ ...p, vigencia: e.target.value }))
                   }
                 >
-                  {["1 MES", "15 DÍAS", "30 DÍAS"].map((v) => (
+                  {VIGENCIAS.map((v) => (
                     <option key={v}>{v}</option>
                   ))}
                 </select>
               </div>
               <div>
-                <label className={label}>Forma de pago</label>
+                <label className={label}>Facturación</label>
                 <select
                   className={input}
-                  value={cliente.pago || "Mensual"}
+                  value={cliente.pago || "MES CORRIENTE"}
                   onChange={(e) =>
                     setCliente((p) => ({ ...p, pago: e.target.value }))
                   }
@@ -390,7 +390,7 @@ export default function NuevaCotizacion() {
                   }
                 />
               </div>
-               <div className="col-span-1 lg:col-span-2">
+              <div className="col-span-1 lg:col-span-2">
                 <label className={label}>Notas adicionales</label>
                 <textarea
                   className={input}

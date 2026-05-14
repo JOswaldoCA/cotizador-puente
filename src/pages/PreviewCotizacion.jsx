@@ -46,8 +46,6 @@ export default function PreviewCotizacion() {
           .no-print { display: none !important; }
           body { margin: 0 !important; padding: 0 !important; background: white !important; }
           .py-8 { padding: 0 !important; }
-
-          /* Forzar una sola página */
           #documento {
             width: 100% !important;
             min-height: unset !important;
@@ -57,11 +55,7 @@ export default function PreviewCotizacion() {
             border-radius: 0 !important;
             font-size: 10px !important;
           }
-
-          @page {
-            size: letter portrait;
-            margin: 8mm 10mm;
-          }
+          @page { size: letter portrait; margin: 8mm 10mm; }
         }
         body { background: #F0F4F8; }
       `}</style>
@@ -108,9 +102,7 @@ export default function PreviewCotizacion() {
         </div>
       </div>
 
-      {/* Sombra del documento */}
       <div className="py-8">
-        {/* Documento */}
         <div
           id="documento"
           style={{
@@ -126,290 +118,329 @@ export default function PreviewCotizacion() {
             boxShadow:
               "0 8px 32px rgba(27,58,107,0.12), 0 2px 8px rgba(27,58,107,0.08)",
             borderRadius: "4px",
+            display: "flex",
+            flexDirection: "column",
           }}
         >
-          {/* ENCABEZADO */}
-          <table
-            width="100%"
-            style={{ borderCollapse: "collapse", marginBottom: 5 }}
-          >
-            <tbody>
-              <tr>
-                <td
-                  style={{
-                    width: "45%",
-                    verticalAlign: "middle",
-                    paddingRight: 12,
-                  }}
-                >
-                  <img
-                    src={logo}
-                    alt="Puente Ambiental"
+          <div style={{ flex: 1 }}>
+            {/* ENCABEZADO */}
+            <table
+              width="100%"
+              style={{ borderCollapse: "collapse", marginBottom: 5 }}
+            >
+              <tbody>
+                <tr>
+                  {/* Logo más grande */}
+                  <td
                     style={{
-                      maxWidth: 170,
-                      maxHeight: 60,
-                      objectFit: "contain",
+                      width: "50%",
+                      verticalAlign: "middle",
+                      paddingRight: 12,
                     }}
-                  />
-                </td>
-                <td
-                  style={{
-                    textAlign: "right",
-                    verticalAlign: "top",
-                    fontSize: 10,
-                    lineHeight: 1.5,
-                  }}
-                >
-                  <strong>{sucursal.nombre},</strong>
-                  <br />
-                  {sucursal.tipo}.<br />
-                  {sucursal.direccion}
-                  <br />
-                  {sucursal.cp}
-                  <br />
-                  {sucursal.ciudad}
-                </td>
-              </tr>
-            </tbody>
-          </table>
-
-          {/* Línea divisora */}
-          <div style={{ borderBottom: "2px solid #1B3A6B", marginBottom: 5 }} />
-
-          {/* FOLIO / FECHA / VIGENCIA */}
-          <table
-            width="100%"
-            style={{ borderCollapse: "collapse", marginBottom: 4 }}
-          >
-            <tbody>
-              <tr>
-                <td width="55%"></td>
-                <td
-                  style={{
-                    border: "1px solid #ccc",
-                    padding: "2px 6px",
-                    fontSize: 9,
-                    background: "#f8f8f8",
-                  }}
-                >
-                  <strong>FOLIO:</strong>
-                </td>
-                <td
-                  style={{
-                    border: "1px solid #ccc",
-                    padding: "2px 6px",
-                    fontSize: 9,
-                    fontWeight: 700,
-                    color: "#1B3A6B",
-                  }}
-                >
-                  {folio}
-                </td>
-              </tr>
-              <tr>
-                <td width="55%"></td>
-                <td
-                  style={{
-                    border: "1px solid #ccc",
-                    padding: "2px 6px",
-                    fontSize: 9,
-                    background: "#f8f8f8",
-                  }}
-                >
-                  <strong>COTIZACION PRESENTADA:</strong>
-                </td>
-                <td
-                  style={{
-                    border: "1px solid #ccc",
-                    padding: "2px 6px",
-                    fontSize: 9,
-                  }}
-                >
-                  {fecha}
-                </td>
-              </tr>
-              <tr>
-                <td width="55%"></td>
-                <td
-                  style={{
-                    border: "1px solid #ccc",
-                    padding: "2px 6px",
-                    fontSize: 9,
-                    background: "#f8f8f8",
-                  }}
-                >
-                  <strong>VIGENCIA</strong>
-                </td>
-                <td
-                  style={{
-                    border: "1px solid #ccc",
-                    padding: "2px 6px",
-                    fontSize: 9,
-                  }}
-                >
-                  {cliente.vigencia}
-                </td>
-              </tr>
-              {/* ← AGREGA ESTA FILA */}
-              <tr>
-                <td width="55%"></td>
-                <td
-                  style={{
-                    border: "1px solid #ccc",
-                    padding: "2px 6px",
-                    fontSize: 9,
-                    background: "#f8f8f8",
-                  }}
-                >
-                  <strong>FORMA DE PAGO</strong>
-                </td>
-                <td
-                  style={{
-                    border: "1px solid #ccc",
-                    padding: "2px 6px",
-                    fontSize: 9,
-                    fontWeight: 700,
-                    color: "#1B3A6B",
-                  }}
-                >
-                  {cliente.pago?.toUpperCase() || "MENSUAL"}
-                </td>
-              </tr>
-            </tbody>
-          </table>
-
-          {/* ATENCIÓN */}
-          <div
-            style={{
-              borderBottom: "1px solid #ccc",
-              paddingBottom: 3,
-              marginBottom: 3,
-              fontSize: 10.5,
-            }}
-          >
-            <strong>ATENCION A: </strong>
-            {cliente.contacto?.toUpperCase()}
-          </div>
-          <div
-            style={{
-              borderBottom: "1px solid #ccc",
-              paddingBottom: 3,
-              marginBottom: 7,
-              fontSize: 10.5,
-            }}
-          >
-            {cliente.atencion?.toUpperCase()}
-          </div>
-
-          {/* TEXTO INTRO */}
-          <div style={{ marginBottom: 8, lineHeight: 1.45, fontSize: 9.5 }}>
-            {TEXTO_INTRO.split("\n\n").map((p, i) => (
-              <p key={i} style={{ margin: "0 0 4px" }}>
-                {p}
-              </p>
-            ))}
-          </div>
-
-          {/* COTIZACIÓN */}
-          <div
-            style={{
-              marginBottom: 4,
-              fontWeight: 700,
-              fontSize: 10,
-              color: "#1B3A6B",
-            }}
-          >
-            COTIZACIÓN
-          </div>
-          <div style={{ marginBottom: 7, lineHeight: 1.45, fontSize: 9.5 }}>
-            Con base a la información compartida por usted, ponemos a su
-            consideración la siguiente propuesta económica para el servicio de
-            recolección, transporte y disposición final de residuos sólidos
-            urbanos generados en sus distintas localidades:
-          </div>
-
-          {/* TABLA OPCIONES */}
-          <table
-            width="100%"
-            style={{ borderCollapse: "collapse", marginBottom: 8 }}
-          >
-            <thead>
-              <tr style={{ background: "#FFD700" }}>
-                <th
-                  style={{
-                    border: "1px solid #999",
-                    padding: "3px 6px",
-                    textAlign: "left",
-                    fontSize: 10,
-                  }}
-                >
-                  DESCRIPCIÓN
-                </th>
-                <th
-                  colSpan={2}
-                  style={{
-                    border: "1px solid #999",
-                    padding: "3px 6px",
-                    textAlign: "right",
-                    fontSize: 10,
-                    width: "35%",
-                  }}
-                >
-                  TOTAL
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {opciones.map((op, i) => (
-                <>
-                  <tr key={`title-${i}`}>
-                    <td
-                      colSpan={3}
+                  >
+                    <img
+                      src={logo}
+                      alt="Puente Ambiental"
                       style={{
-                        background: "#1B3A6B",
-                        textAlign: "center",
-                        fontWeight: 700,
-                        fontSize: 10,
-                        border: "1px solid #1B3A6B",
-                        padding: "3px 6px",
-                        color: "#FFD700",
-                        letterSpacing: "1px",
+                        maxWidth: 220,
+                        maxHeight: 80,
+                        objectFit: "contain",
                       }}
-                    >
-                      OPCION {i + 1}
-                    </td>
-                  </tr>
-                  {(op.servicios || []).map((srv, si) => (
-                    <tr key={`srv-${i}-${si}`}>
+                    />
+                  </td>
+                  {/* Info sucursal compacta */}
+                  <td
+                    style={{
+                      textAlign: "right",
+                      verticalAlign: "top",
+                      fontSize: 9,
+                      lineHeight: 1.4,
+                    }}
+                  >
+                    <strong style={{ fontSize: 10 }}>
+                      PUENTE AMBIENTAL DEL NOROESTE S.A DE C.V
+                    </strong>
+                    <br />
+                    <strong>{sucursal.tipo}</strong>
+                    <br />
+                    {sucursal.direccion} {sucursal.cp} {sucursal.ciudad}
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+
+            {/* Línea divisora */}
+            <div
+              style={{ borderBottom: "2px solid #1B3A6B", marginBottom: 5 }}
+            />
+
+            {/* FOLIO / FECHA / VIGENCIA / FACTURACIÓN */}
+            <table
+              width="100%"
+              style={{ borderCollapse: "collapse", marginBottom: 4 }}
+            >
+              <tbody>
+                <tr>
+                  <td width="55%"></td>
+                  <td
+                    style={{
+                      border: "1px solid #ccc",
+                      padding: "2px 6px",
+                      fontSize: 9,
+                      background: "#f8f8f8",
+                    }}
+                  >
+                    <strong>FOLIO:</strong>
+                  </td>
+                  <td
+                    style={{
+                      border: "1px solid #ccc",
+                      padding: "2px 6px",
+                      fontSize: 9,
+                      fontWeight: 700,
+                      color: "#1B3A6B",
+                    }}
+                  >
+                    {folio}
+                  </td>
+                </tr>
+                <tr>
+                  <td width="55%"></td>
+                  <td
+                    style={{
+                      border: "1px solid #ccc",
+                      padding: "2px 6px",
+                      fontSize: 9,
+                      background: "#f8f8f8",
+                    }}
+                  >
+                    <strong>COTIZACIÓN PRESENTADA:</strong>
+                  </td>
+                  <td
+                    style={{
+                      border: "1px solid #ccc",
+                      padding: "2px 6px",
+                      fontSize: 9,
+                    }}
+                  >
+                    {fecha}
+                  </td>
+                </tr>
+                <tr>
+                  <td width="55%"></td>
+                  <td
+                    style={{
+                      border: "1px solid #ccc",
+                      padding: "2px 6px",
+                      fontSize: 9,
+                      background: "#f8f8f8",
+                    }}
+                  >
+                    <strong>VIGENCIA</strong>
+                  </td>
+                  <td
+                    style={{
+                      border: "1px solid #ccc",
+                      padding: "2px 6px",
+                      fontSize: 9,
+                    }}
+                  >
+                    {cliente.vigencia}
+                  </td>
+                </tr>
+                <tr>
+                  <td width="55%"></td>
+                  <td
+                    style={{
+                      border: "1px solid #ccc",
+                      padding: "2px 6px",
+                      fontSize: 9,
+                      background: "#f8f8f8",
+                    }}
+                  >
+                    <strong>FACTURACIÓN</strong>
+                  </td>
+                  <td
+                    style={{
+                      border: "1px solid #ccc",
+                      padding: "2px 6px",
+                      fontSize: 9,
+                      fontWeight: 700,
+                      color: "#1B3A6B",
+                    }}
+                  >
+                    {cliente.pago?.toUpperCase() || "MENSUAL"}
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+
+            {/* ATENCIÓN — Contacto arriba, Razón Social abajo */}
+            <div
+              style={{
+                borderBottom: "1px solid #ccc",
+                paddingBottom: 3,
+                marginBottom: 2,
+                fontSize: 10.5,
+              }}
+            >
+              <strong>ATENCIÓN A: </strong>
+              {cliente.atencion?.toUpperCase()}
+            </div>
+            <div
+              style={{
+                borderBottom: "1px solid #ccc",
+                paddingBottom: 3,
+                marginBottom: 7,
+                fontSize: 10.5,
+              }}
+            >
+              <strong>RAZÓN SOCIAL: </strong>
+              {cliente.contacto?.toUpperCase()}
+            </div>
+
+            {/* TEXTO INTRO */}
+            <div style={{ marginBottom: 8, lineHeight: 1.45, fontSize: 9.5 }}>
+              {TEXTO_INTRO.split("\n\n").map((p, i) => (
+                <p key={i} style={{ margin: "0 0 4px" }}>
+                  {p}
+                </p>
+              ))}
+            </div>
+
+            {/* COTIZACIÓN */}
+            <div
+              style={{
+                marginBottom: 4,
+                fontWeight: 700,
+                fontSize: 10,
+                color: "#1B3A6B",
+              }}
+            >
+              COTIZACIÓN
+            </div>
+            <div style={{ marginBottom: 7, lineHeight: 1.45, fontSize: 9.5 }}>
+              Con base a la información compartida por usted, ponemos a su
+              consideración la siguiente propuesta económica para el servicio de
+              recolección, transporte y disposición final de residuos sólidos
+              urbanos generados en sus distintas localidades:
+            </div>
+
+            {/* TABLA OPCIONES */}
+            <table
+              width="100%"
+              style={{ borderCollapse: "collapse", marginBottom: 8 }}
+            >
+              <thead>
+                <tr style={{ background: "#FFD700" }}>
+                  <th
+                    style={{
+                      border: "1px solid #999",
+                      padding: "3px 6px",
+                      textAlign: "left",
+                      fontSize: 10,
+                    }}
+                  >
+                    DESCRIPCIÓN
+                  </th>
+                  <th
+                    colSpan={2}
+                    style={{
+                      border: "1px solid #999",
+                      padding: "3px 6px",
+                      textAlign: "right",
+                      fontSize: 10,
+                      width: "35%",
+                    }}
+                  >
+                    TOTAL
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {opciones.map((op, i) => (
+                  <>
+                    <tr key={`title-${i}`}>
                       <td
+                        colSpan={3}
                         style={{
-                          border: "1px solid #ccc",
+                          background: "#1B3A6B",
+                          textAlign: "center",
+                          fontWeight: 700,
+                          fontSize: 10,
+                          border: "1px solid #1B3A6B",
                           padding: "3px 6px",
-                          fontSize: 9.5,
+                          color: "#FFD700",
+                          letterSpacing: "1px",
                         }}
                       >
-                        <strong>
-                          {srv.nombre?.toUpperCase() || "SERVICIO"}
-                        </strong>
-                        {" — "}
-                        {srv.numContenedores} PZA
-                        {Number(srv.numContenedores) !== 1 ? "S" : ""} A
-                        COMODATO
-                        {" — "}
-                        {srv.diasSemana} VISITA
-                        {Number(srv.diasSemana) !== 1 ? "S" : ""}/SEMANA
+                        OPCIÓN {i + 1}
                       </td>
+                    </tr>
+                    {(op.servicios || []).map((srv, si) => (
+                      <tr key={`srv-${i}-${si}`}>
+                        <td
+                          style={{
+                            border: "1px solid #ccc",
+                            padding: "3px 6px",
+                            fontSize: 9.5,
+                          }}
+                        >
+                          <strong>
+                            {srv.nombre?.toUpperCase() || "SERVICIO"}
+                          </strong>
+                          {" — "}
+                          {srv.numContenedores} PZA
+                          {Number(srv.numContenedores) !== 1 ? "S" : ""} A
+                          COMODATO
+                          {" — "}
+                          {srv.diasSemana} VISITA
+                          {Number(srv.diasSemana) !== 1 ? "S" : ""}/SEMANA
+                        </td>
+                        <td
+                          style={{
+                            border: "1px solid #ccc",
+                            padding: "3px 6px",
+                            fontSize: 9,
+                            textAlign: "right",
+                            whiteSpace: "nowrap",
+                            background: "#fafafa",
+                          }}
+                        >
+                          SUBTOTAL $
+                        </td>
+                        <td
+                          style={{
+                            border: "1px solid #ccc",
+                            padding: "3px 6px",
+                            fontSize: 9,
+                            textAlign: "right",
+                            minWidth: 65,
+                          }}
+                        >
+                          {(
+                            srv.precioUnitario * srv.numContenedores +
+                            srv.precioDia * srv.diasSemana
+                          ).toLocaleString("es-MX", {
+                            minimumFractionDigits: 2,
+                          })}
+                        </td>
+                      </tr>
+                    ))}
+                    <tr key={`iva-${i}`}>
+                      <td
+                        style={{ border: "1px solid #ccc", padding: "3px 6px" }}
+                      ></td>
                       <td
                         style={{
                           border: "1px solid #ccc",
                           padding: "3px 6px",
                           fontSize: 9,
                           textAlign: "right",
-                          whiteSpace: "nowrap",
                           background: "#fafafa",
                         }}
                       >
-                        SUBTOTAL $
+                        IVA $
                       </td>
                       <td
                         style={{
@@ -417,182 +448,200 @@ export default function PreviewCotizacion() {
                           padding: "3px 6px",
                           fontSize: 9,
                           textAlign: "right",
-                          minWidth: 65,
                         }}
                       >
-                        {(
-                          srv.precioUnitario * srv.numContenedores +
-                          srv.precioDia * srv.diasSemana
-                        ).toLocaleString("es-MX", { minimumFractionDigits: 2 })}
+                        {(op.iva || 0).toLocaleString("es-MX", {
+                          minimumFractionDigits: 2,
+                        })}
                       </td>
                     </tr>
-                  ))}
-                  <tr key={`iva-${i}`}>
-                    <td
-                      style={{ border: "1px solid #ccc", padding: "3px 6px" }}
-                    ></td>
-                    <td
-                      style={{
-                        border: "1px solid #ccc",
-                        padding: "3px 6px",
-                        fontSize: 9,
-                        textAlign: "right",
-                        background: "#fafafa",
-                      }}
-                    >
-                      IVA $
-                    </td>
-                    <td
-                      style={{
-                        border: "1px solid #ccc",
-                        padding: "3px 6px",
-                        fontSize: 9,
-                        textAlign: "right",
-                      }}
-                    >
-                      {(op.iva || 0).toLocaleString("es-MX", {
-                        minimumFractionDigits: 2,
-                      })}
-                    </td>
-                  </tr>
-                  <tr key={`total-${i}`}>
-                    <td
-                      style={{ border: "1px solid #ccc", padding: "3px 6px" }}
-                    ></td>
-                    <td
-                      style={{
-                        border: "1px solid #ccc",
-                        padding: "3px 6px",
-                        fontSize: 9,
-                        textAlign: "right",
-                        fontWeight: 700,
-                        background: "#EEF2FF",
-                        color: "#1B3A6B",
-                      }}
-                    >
-                      NETO MENSUAL $
-                    </td>
-                    <td
-                      style={{
-                        border: "1px solid #ccc",
-                        padding: "3px 6px",
-                        fontSize: 9,
-                        textAlign: "right",
-                        fontWeight: 700,
-                        background: "#EEF2FF",
-                        color: "#1B3A6B",
-                      }}
-                    >
-                      {(op.total || 0).toLocaleString("es-MX", {
-                        minimumFractionDigits: 2,
-                      })}
-                    </td>
-                  </tr>
-                </>
-              ))}
-            </tbody>
-          </table>
+                    <tr key={`total-${i}`}>
+                      <td
+                        style={{ border: "1px solid #ccc", padding: "3px 6px" }}
+                      ></td>
+                      <td
+                        style={{
+                          border: "1px solid #ccc",
+                          padding: "3px 6px",
+                          fontSize: 9,
+                          textAlign: "right",
+                          fontWeight: 700,
+                          background: "#EEF2FF",
+                          color: "#1B3A6B",
+                        }}
+                      >
+                        NETO MENSUAL $
+                      </td>
+                      <td
+                        style={{
+                          border: "1px solid #ccc",
+                          padding: "3px 6px",
+                          fontSize: 9,
+                          textAlign: "right",
+                          fontWeight: 700,
+                          background: "#EEF2FF",
+                          color: "#1B3A6B",
+                        }}
+                      >
+                        {(op.total || 0).toLocaleString("es-MX", {
+                          minimumFractionDigits: 2,
+                        })}
+                      </td>
+                    </tr>
+                  </>
+                ))}
+              </tbody>
+            </table>
 
-          {/* NOTAS */}
-          {cot.cliente?.notas && (
-            <div style={{ marginBottom: 7 }}>
+            {/* NOTAS */}
+            {cot.cliente?.notas && (
+              <div style={{ marginBottom: 7 }}>
+                <div
+                  style={{
+                    fontWeight: 700,
+                    fontSize: 10,
+                    marginBottom: 3,
+                    color: "#1B3A6B",
+                  }}
+                >
+                  OBSERVACIONES
+                </div>
+                <div
+                  style={{
+                    fontSize: 9.5,
+                    lineHeight: 1.5,
+                    border: "1px solid #e5e7eb",
+                    borderLeft: "3px solid #1B3A6B",
+                    borderRadius: 4,
+                    padding: "4px 8px",
+                    background: "#fafafa",
+                  }}
+                >
+                  {cot.cliente.notas}
+                </div>
+              </div>
+            )}
+
+            {/* BASES */}
+            <div
+              style={{
+                fontWeight: 700,
+                fontSize: 10,
+                marginBottom: 3,
+                color: "#1B3A6B",
+              }}
+            >
+              BASES DE LA COTIZACIÓN
+            </div>
+            <div style={{ fontSize: 9, lineHeight: 1.6 }}>
+              {BASES.map((b, i) => (
+                <div key={i}>• {b}</div>
+              ))}
+              {(cot.basesExtra || []).map((b, i) => (
+                <div
+                  key={`extra-${i}`}
+                  style={{ color: "#1B3A6B", fontWeight: 600 }}
+                >
+                  • {b}
+                </div>
+              ))}
+            </div>
+            {/* DATOS BANCARIOS */}
+            <div
+              style={{
+                marginTop: 10,
+                border: "1px solid #e5e7eb",
+                borderLeft: "3px solid #1B3A6B",
+                borderRadius: 4,
+                padding: "6px 10px",
+                background: "#F8FAFF",
+              }}
+            >
               <div
                 style={{
                   fontWeight: 700,
-                  fontSize: 10,
-                  marginBottom: 3,
+                  fontSize: 9,
                   color: "#1B3A6B",
+                  marginBottom: 4,
                 }}
               >
-                OBSERVACIONES
+                DATOS BANCARIOS
               </div>
-              <div
-                style={{
-                  fontSize: 9.5,
-                  lineHeight: 1.5,
-                  border: "1px solid #e5e7eb",
-                  borderLeft: "3px solid #1B3A6B",
-                  borderRadius: 4,
-                  padding: "4px 8px",
-                  background: "#fafafa",
-                }}
+              <table
+                width="100%"
+                style={{ borderCollapse: "collapse", fontSize: 8.5 }}
               >
-                {cot.cliente.notas}
-              </div>
+                <tbody>
+                  {[
+                    ["RAZÓN SOCIAL", "PUENTE AMBIENTAL DEL NOROESTE SA DE CV"],
+                    ["RFC", "PAN160504GI0"],
+                    ["CORREO", "cobranza@puenteambiental.com.mx"],
+                    ["BANCO", "BBVA"],
+                    ["CUENTA BANCARIA", "0108825866"],
+                    ["CLAVE INTERBANCARIA", "012760001088258664"],
+                  ].map(([label, valor]) => (
+                    <tr key={label}>
+                      <td
+                        style={{
+                          fontWeight: 700,
+                          color: "#374151",
+                          paddingRight: 8,
+                          paddingBottom: 2,
+                          whiteSpace: "nowrap",
+                          width: "35%",
+                        }}
+                      >
+                        {label}:
+                      </td>
+                      <td
+                        style={{
+                          color: "#111",
+                          paddingBottom: 2,
+                          fontWeight:
+                            label === "CLAVE INTERBANCARIA" ||
+                            label === "CUENTA BANCARIA"
+                              ? 700
+                              : 400,
+                        }}
+                      >
+                        {valor}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
-          )}
-
-          {/* BASES */}
-          <div
-            style={{
-              fontWeight: 700,
-              fontSize: 10,
-              marginBottom: 3,
-              color: "#1B3A6B",
-            }}
-          >
-            BASES DE LA COTIZACION
           </div>
-          <table width="100%" style={{ borderCollapse: "collapse" }}>
-            <tbody>
-              <tr>
-                <td
-                  style={{
-                    verticalAlign: "top",
-                    width: "55%",
-                    fontSize: 8.5,
-                    lineHeight: 1.6,
-                    paddingRight: 12,
-                  }}
-                >
-                  {BASES.map((b, i) => (
-                    <div key={i}>• {b}</div>
-                  ))}
-                  {(cot.basesExtra || []).map((b, i) => (
-                    <div
-                      key={`extra-${i}`}
-                      style={{ color: "#1B3A6B", fontWeight: 600 }}
-                    >
-                      • {b}
-                    </div>
-                  ))}
-                </td>
-                <td
-                  style={{
-                    verticalAlign: "top",
-                    textAlign: "right",
-                    fontSize: 9.5,
-                    lineHeight: 1.7,
-                  }}
-                >
-                  <strong style={{ color: "#1B3A6B" }}>
-                    {sucursal.nombre}
-                  </strong>
-                  <br />
-                  {sucursal.direccion},<br />
-                  {sucursal.ciudad}
-                  <br />
-                  {sucursal.cp}
-                  <br />
-                  <strong>{sucursal.tipo}</strong>
-                </td>
-              </tr>
-            </tbody>
-          </table>
 
-          {/* Pie de página */}
+          {/* PIE DE PÁGINA — info sucursal */}
           <div
             style={{
               borderTop: "2px solid #1B3A6B",
-              marginTop: 10,
-              paddingTop: 5,
-              textAlign: "center",
-              fontSize: 8,
-              color: "#6B7280",
+              marginTop: 12,
+              paddingTop: 6,
             }}
           >
-            Puente Ambiental del Noroeste S.A de C.V · {sucursal.ciudad} ·{" "}
-            {sucursal.cp}
+            <table width="100%" style={{ borderCollapse: "collapse" }}>
+              <tbody>
+                <tr>
+                  <td
+                    style={{
+                      verticalAlign: "top",
+                      fontSize: 8,
+                      color: "#6B7280",
+                      lineHeight: 1.5,
+                    }}
+                  >
+                    <strong style={{ color: "#1B3A6B", fontSize: 9 }}>
+                      PUENTE AMBIENTAL DEL NOROESTE S.A DE C.V
+                    </strong>
+                    <br />
+                    <strong>{sucursal.tipo}</strong> · {sucursal.direccion} ·{" "}
+                    {sucursal.ciudad} · {sucursal.cp}
+                  </td>
+                </tr>
+              </tbody>
+            </table>
           </div>
         </div>
       </div>

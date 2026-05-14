@@ -72,6 +72,7 @@ export default function ModalCotizacion({ folio, emailCliente }) {
     setProgreso("");
     setEnviando(false);
   };
+  
   return (
     <div
       className="fixed inset-0 flex items-center justify-center z-50 px-4"
