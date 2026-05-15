@@ -443,7 +443,6 @@ export function DocumentoPDF({ cot }) {
           ))}
         </View>
 
-        {/* PIE DE PÁGINA — info sucursal */}
         <View style={styles.footer}>
           <Text
             style={{
@@ -455,8 +454,8 @@ export function DocumentoPDF({ cot }) {
             PUENTE AMBIENTAL DEL NOROESTE S.A DE C.V
           </Text>
           <Text style={styles.footerText}>
-            {sucursal?.tipo} · {sucursal?.direccion} · {sucursal?.ciudad} ·{" "}
-            {sucursal?.cp}
+            BLVD. JOSE ALBERTO HEALY NORIEGA Y CALLE PASEO PINO REAL, COL. LOS
+            PINOS RESIDENCIAL. C.P 83117 HERMOSILLO, SONORA.
           </Text>
         </View>
       </Page>

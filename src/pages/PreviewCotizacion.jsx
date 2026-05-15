@@ -613,7 +613,7 @@ export default function PreviewCotizacion() {
             </div>
           </div>
 
-          {/* PIE DE PÁGINA — info sucursal */}
+          {/* PIE DE PÁGINA — siempre datos de MATRIZ */}
           <div
             style={{
               borderTop: "2px solid #1B3A6B",
@@ -636,8 +636,8 @@ export default function PreviewCotizacion() {
                       PUENTE AMBIENTAL DEL NOROESTE S.A DE C.V
                     </strong>
                     <br />
-                    <strong>{sucursal.tipo}</strong> · {sucursal.direccion} ·{" "}
-                    {sucursal.ciudad} · {sucursal.cp}
+                    BLVD. JOSE ALBERTO HEALY NORIEGA Y CALLE PASEO PINO REAL,
+                    COL. LOS PINOS RESIDENCIAL. C.P 83117 HERMOSILLO, SONORA.
                   </td>
                 </tr>
               </tbody>
