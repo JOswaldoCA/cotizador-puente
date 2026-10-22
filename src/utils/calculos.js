@@ -71,5 +71,5 @@ export function calcularTotalesOpcion(servicios) {
 export function diasParaVencer(fecha, vigencia) {
   const fechaVence = fechaVencimiento(fecha, vigencia)
   if (!fechaVence) return null
-  return Math.ceil((fechaVence - new Date()) / 86400000) // negativo = ya venció, positivo = días que faltan
+  return Math.ceil((fechaVence - new Date()) / 86400000) + 0 // + 0 evita -0; negativo = ya venció, positivo = días que faltan
 }
