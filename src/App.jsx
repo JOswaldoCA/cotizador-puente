@@ -1,15 +1,14 @@
 import { useEffect } from "react";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useParams } from "react-router-dom";
 import { useAuth } from "./hooks/useAuth";
 import { supabase } from "./services/supabase";
 import Layout from "./components/Layout";
 import Dashboard from "./pages/Dashboard";
-import NuevaCotizacion from "./pages/NuevaCotizacion";
+import FormularioCotizacion from "./pages/FormularioCotizacion";
 import Cotizaciones from "./pages/Cotizaciones";
 import PreviewCotizacion from "./pages/PreviewCotizacion";
 import Login from "./pages/Login";
 import Registro from "./pages/Registro";
-import EditarCotizacion from "./pages/EditarCotizacion";
 import RecuperarPassword from "./pages/RecuperarPassword";
 import NuevaPassword from "./pages/NuevaPassword";
 import Confirmado from "./pages/Confirmado";
@@ -25,6 +24,12 @@ function RutaProtegida({ children }) {
     </div>
   );
   return usuario ? children : <Navigate to="/login" replace />;
+}
+
+// La key reinicia el formulario al cambiar de folio o entre nueva y edición
+function EditarCotizacion() {
+  const { folio } = useParams();
+  return <FormularioCotizacion key={folio} />;
 }
 
 export default function App() {
@@ -64,7 +69,7 @@ export default function App() {
         {/* Rutas protegidas con Layout */}
         <Route path="/" element={<RutaProtegida><Layout /></RutaProtegida>}>
           <Route index element={<Dashboard />} />
-          <Route path="nueva" element={<NuevaCotizacion />} />
+          <Route path="nueva" element={<FormularioCotizacion key="nueva" />} />
           <Route path="cotizaciones" element={<Cotizaciones />} />
           <Route path="cotizaciones/:folio/editar" element={<EditarCotizacion />} />
           <Route path="admin/usuarios" element={<Usuarios />} />

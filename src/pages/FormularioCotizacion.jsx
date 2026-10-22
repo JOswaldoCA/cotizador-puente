@@ -1,22 +1,22 @@
-import { useEffect, useState, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useCotizacion } from "../hooks/useCotizacion";
-import {
-  obtenerCotizacion,
-  guardarCotizacion,
-  actualizarCotizacion,
-} from "../services/cotizaciones";
-import { obtenerClientes } from "../services/sqlserver";
+import { SUCURSALES, VIGENCIAS } from "../utils/constantes";
 import {
   fechaHoy,
   calcularServicio,
   calcularTotalesOpcion,
   estaVencida,
 } from "../utils/calculos";
+import {
+  obtenerCotizacion,
+  guardarCotizacion,
+  actualizarCotizacion,
+} from "../services/cotizaciones";
+import { obtenerClientes, obtenerServicios } from "../services/sqlserver";
 import ModalCotizacion from "../components/ModalCotizacion";
-import BasesEditor from "../components/BasesEditor";
-import { useAuth } from "../hooks/useAuth"; // ← agrega
-import { SUCURSALES, VIGENCIAS } from "../utils/constantes";
+import { useAuth } from "../hooks/useAuth";
+import BasesEditor from "../components/BasesEditor";
 import { esSupervisor } from "../utils/permisos";
 
 const input =
@@ -41,15 +41,16 @@ const SectionHeader = ({ title, icon }) => (
   </div>
 );
 
-export default function EditarCotizacion() {
+// Nueva (/nueva) y edición (/cotizaciones/:folio/editar) usan este formulario.
+// Al editar una cotización vencida se guarda como una nueva con otro folio.
+export default function FormularioCotizacion() {
   const { folio: folioParam } = useParams();
+  const editando = Boolean(folioParam);
   const navigate = useNavigate();
-  const buscadorRef = useRef(null);
-  const { perfil } = useAuth(); // ← agrega
 
   const {
     sucursal,
-    setSucursal, // ← agrega
+    setSucursal,
     opciones,
     agregarOpcion,
     quitarOpcion,
@@ -58,33 +59,47 @@ export default function EditarCotizacion() {
     actualizarServicio,
     cliente,
     setCliente,
-    cargarCotizacion,
     basesExtra,
     setBasesExtra,
+    cargarCotizacion,
   } = useCotizacion();
+
+  const { perfil } = useAuth();
+  const buscadorRef = useRef(null);
 
   const [catalogoServicios, setCatalogoServicios] = useState([]);
   const [clientes, setClientes] = useState([]);
   const [clienteSeleccionado, setClienteSeleccionado] = useState("");
   const [busquedaCliente, setBusquedaCliente] = useState("");
   const [mostrarLista, setMostrarLista] = useState(false);
-  const [cargando, setCargando] = useState(true);
-  const [guardando, setGuardando] = useState(false);
-  const [esVencida, setEsVencida] = useState(false);
   const [modalFolio, setModalFolio] = useState(null);
+  const [guardando, setGuardando] = useState(false);
+  const [cargandoDB, setCargandoDB] = useState(true);
+  const [cargando, setCargando] = useState(editando);
+  const [esVencida, setEsVencida] = useState(false);
+
+  // Cotización nueva: arranca con la sucursal del usuario
+  useEffect(() => {
+    if (!editando && perfil?.sucursal_id) {
+      const s = SUCURSALES.find((x) => x.id === perfil.sucursal_id);
+      if (s) setSucursal(s);
+    }
+  }, [perfil, editando]);
+
   const puedeElegirSucursal = esSupervisor(perfil);
 
   useEffect(() => {
     Promise.all([
-      obtenerCotizacion(folioParam),
-      import("../services/sqlserver").then((m) => m.obtenerServicios()),
       obtenerClientes(),
+      obtenerServicios(),
+      editando ? obtenerCotizacion(folioParam) : null,
     ])
-      .then(([cot, servicios, clientesDB]) => {
+      .then(([c, s, cot]) => {
+        setClientes(c);
+        setCatalogoServicios(s);
+        if (!editando) return;
         if (!cot) return navigate("/cotizaciones");
         cargarCotizacion(cot);
-        setCatalogoServicios(servicios);
-        setClientes(clientesDB);
         setEsVencida(estaVencida(cot.fecha, cot.cliente?.vigencia));
         // Prellenar buscador con el cliente actual
         if (cot.cliente?.contacto) {
@@ -92,7 +107,11 @@ export default function EditarCotizacion() {
           setClienteSeleccionado(cot.cliente.contacto);
         }
       })
-      .finally(() => setCargando(false));
+      .catch(console.error)
+      .finally(() => {
+        setCargandoDB(false);
+        setCargando(false);
+      });
   }, [folioParam]);
 
   // Cerrar lista al hacer clic fuera
@@ -115,7 +134,7 @@ export default function EditarCotizacion() {
     )
     .slice(0, 10);
 
-  const seleccionarClienteDB = (razonSocial) => {
+  const seleccionarCliente = (razonSocial) => {
     setClienteSeleccionado(razonSocial);
     if (!razonSocial) return;
     const c = clientes.find((x) => x.razon_social?.trim() === razonSocial);
@@ -150,31 +169,23 @@ export default function EditarCotizacion() {
         ...op,
         ...calcularTotalesOpcion(op.servicios),
       }));
-      const clienteGuardar = {
-        ...cliente,
-        atencion: cliente.atencion?.toUpperCase(),
-        contacto: cliente.contacto?.toUpperCase(),
+      const datos = {
+        sucursal,
+        cliente: {
+          ...cliente,
+          atencion: cliente.atencion?.toUpperCase(),
+          contacto: cliente.contacto?.toUpperCase(),
+        },
+        opciones: opcionesConTotales,
+        basesExtra,
       };
-      let folioGuardado = folioParam;
-      if (esVencida) {
-        const guardada = await guardarCotizacion({
-          fecha: fechaHoy(),
-          sucursal,
-          cliente: clienteGuardar,
-          opciones: opcionesConTotales,
-          basesExtra,
-        });
-        folioGuardado = guardada.folio;
+      if (editando && !esVencida) {
+        await actualizarCotizacion({ ...datos, folio: folioParam });
+        setModalFolio(folioParam);
       } else {
-        await actualizarCotizacion({
-          folio: folioParam,
-          sucursal,
-          cliente: clienteGuardar,
-          opciones: opcionesConTotales,
-          basesExtra,
-        });
+        const guardada = await guardarCotizacion({ ...datos, fecha: fechaHoy() });
+        setModalFolio(guardada.folio);
       }
-      setModalFolio(folioGuardado);
     } catch (e) {
       alert("Error al guardar: " + e.message);
     }
@@ -195,16 +206,24 @@ export default function EditarCotizacion() {
         {/* Título */}
         <div className="flex items-center justify-between">
           <div>
-            <h2
-              className="text-2xl font-bold tracking-tight"
-              style={{ color: "#1B3A6B" }}
-            >
-              {esVencida ? "🔄 Renovar cotización" : "✏️ Editar cotización"}
+            <h2 className="text-2xl font-bold text-primary-600 tracking-tight">
+              {!editando
+                ? "Nueva cotización"
+                : esVencida
+                  ? "🔄 Renovar cotización"
+                  : "✏️ Editar cotización"}
             </h2>
             <p className="text-xs text-gray-400 font-mono mt-0.5">
-              {esVencida
-                ? `Nueva desde: ${folioParam}`
-                : `Folio: ${folioParam}`}
+              {!editando ? (
+                <>
+                  Folio:{" "}
+                  <span className="text-primary-600 font-semibold">se asigna al guardar</span>
+                </>
+              ) : esVencida ? (
+                `Nueva desde: ${folioParam}`
+              ) : (
+                `Folio: ${folioParam}`
+              )}
             </p>
           </div>
           <div className="flex items-center gap-2">
@@ -311,7 +330,7 @@ export default function EditarCotizacion() {
           style={{ boxShadow: "0 1px 3px rgba(27,58,107,0.06)" }}
         >
           <SectionHeader title="Datos del cliente" icon="👤" />
-          <div className="p-6 flex flex-col gap-4">
+          <div className="p-6 flex flex-col gap-5">
             {/* Buscador con autocomplete */}
             <div ref={buscadorRef}>
               <label className={label}>Buscar cliente existente</label>
@@ -321,8 +340,13 @@ export default function EditarCotizacion() {
                 </span>
                 <input
                   type="text"
-                  placeholder="Escribe para buscar cliente..."
+                  placeholder={
+                    cargandoDB
+                      ? "⏳ Cargando clientes..."
+                      : "Escribe para buscar cliente..."
+                  }
                   value={busquedaCliente}
+                  disabled={cargandoDB}
                   onChange={(e) => {
                     setBusquedaCliente(e.target.value);
                     setMostrarLista(true);
@@ -367,7 +391,7 @@ export default function EditarCotizacion() {
                           onClick={() => {
                             setBusquedaCliente(c.razon_social?.trim() || "");
                             setMostrarLista(false);
-                            seleccionarClienteDB(c.razon_social?.trim());
+                            seleccionarCliente(c.razon_social?.trim());
                           }}
                           className="w-full text-left px-4 py-3 hover:bg-primary-50 transition-colors border-b border-gray-50 last:border-0"
                         >
@@ -417,9 +441,10 @@ export default function EditarCotizacion() {
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               <div>
-                <label className={label}>Atención a (negocio)</label>
+                <label className={label}>Atención a (negocio) *</label>
                 <input
                   className={input + " uppercase"}
+                  placeholder="Nombre del negocio"
                   value={cliente.atencion || ""}
                   onChange={(e) =>
                     setCliente((p) => ({ ...p, atencion: e.target.value }))
@@ -430,12 +455,24 @@ export default function EditarCotizacion() {
                 <label className={label}>Contacto / Razón social</label>
                 <input
                   className={input + " uppercase"}
+                  placeholder="Razón social"
                   value={cliente.contacto || ""}
                   onChange={(e) =>
                     setCliente((p) => ({ ...p, contacto: e.target.value }))
                   }
                 />
               </div>
+              {(!editando || esVencida) && (
+                <div>
+                  <label className={label}>Fecha de cotización</label>
+                  <input
+                    className={input}
+                    value={fechaHoy()}
+                    readOnly
+                    style={{ background: "#F8FAFF", color: "#6B7280" }}
+                  />
+                </div>
+              )}
               <div>
                 <label className={label}>Vigencia</label>
                 <select
@@ -481,6 +518,7 @@ export default function EditarCotizacion() {
                 <textarea
                   className={input}
                   rows={3}
+                  placeholder="Observaciones, accesos especiales, horarios..."
                   value={cliente.notas || ""}
                   onChange={(e) =>
                     setCliente((p) => ({ ...p, notas: e.target.value }))
@@ -491,7 +529,7 @@ export default function EditarCotizacion() {
           </div>
         </div>
 
-        {/* Opciones */}
+        {/* Opciones de servicio */}
         <div
           className="bg-white rounded-2xl border border-gray-100 overflow-hidden"
           style={{ boxShadow: "0 1px 3px rgba(27,58,107,0.06)" }}
@@ -563,6 +601,7 @@ export default function EditarCotizacion() {
                               </button>
                             )}
                           </div>
+
                           <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
                             <div className="col-span-1 lg:col-span-2">
                               <label className={label}>
@@ -570,7 +609,7 @@ export default function EditarCotizacion() {
                               </label>
                               <select
                                 className={inputSm}
-                                value={srv.nombre || ""}
+                                value={srv.servicioId || srv.nombre || ""}
                                 onChange={(e) =>
                                   alSeleccionarServicio(
                                     op.id,
@@ -578,9 +617,12 @@ export default function EditarCotizacion() {
                                     e.target.value,
                                   )
                                 }
+                                disabled={cargandoDB}
                               >
                                 <option value="">
-                                  — Seleccionar servicio —
+                                  {cargandoDB
+                                    ? "Cargando..."
+                                    : "— Seleccionar servicio —"}
                                 </option>
                                 {catalogoServicios.map((s, i) => (
                                   <option key={i} value={s.nombre}>
@@ -598,6 +640,7 @@ export default function EditarCotizacion() {
                                 type="number"
                                 min="0"
                                 step="0.01"
+                                placeholder="0.00"
                                 value={srv.precioUnitario || ""}
                                 onChange={(e) =>
                                   cambiarCampo(
@@ -667,6 +710,7 @@ export default function EditarCotizacion() {
                                 type="number"
                                 min="0"
                                 step="0.01"
+                                placeholder="0.00"
                                 value={srv.precioDia || ""}
                                 onChange={(e) =>
                                   cambiarCampo(
@@ -821,13 +865,15 @@ export default function EditarCotizacion() {
 
         {/* Botones */}
         <div className="flex gap-3">
-          <button
-            type="button"
-            onClick={() => navigate("/cotizaciones")}
-            className="flex-1 border border-gray-200 text-gray-600 font-semibold text-sm py-4 rounded-2xl hover:bg-gray-50 transition-all duration-200 hover:scale-105 active:scale-95"
-          >
-            ← Cancelar
-          </button>
+          {editando && (
+            <button
+              type="button"
+              onClick={() => navigate("/cotizaciones")}
+              className="flex-1 border border-gray-200 text-gray-600 font-semibold text-sm py-4 rounded-2xl hover:bg-gray-50 transition-all duration-200 hover:scale-105 active:scale-95"
+            >
+              ← Cancelar
+            </button>
+          )}
           <button
             type="button"
             onClick={guardar}
@@ -845,6 +891,8 @@ export default function EditarCotizacion() {
                 <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
                 Guardando...
               </>
+            ) : !editando ? (
+              "💾 Guardar cotización"
             ) : esVencida ? (
               "📋 Generar nueva cotización"
             ) : (
@@ -858,7 +906,7 @@ export default function EditarCotizacion() {
         <ModalCotizacion
           folio={modalFolio}
           emailCliente={cliente.email || ""}
-          onCerrar={() => navigate("/cotizaciones")}
+          onCerrar={() => (editando ? navigate("/cotizaciones") : setModalFolio(null))}
         />
       )}
     </>
