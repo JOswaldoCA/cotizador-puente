@@ -25,6 +25,9 @@ export const SUCURSALES = [
   },
 ]
 
+// Nombre corto para tablas y etiquetas
+export const SUCURSAL_CORTA = { matriz: 'Matriz', guaymas: 'Guaymas', obregon: 'Obregón' }
+
 export const VIGENCIAS = ['7 DÍAS', '10 DÍAS', '15 DÍAS', '20 DÍAS', '30 DÍAS']
 
 export const FRECUENCIAS = [

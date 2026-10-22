@@ -1,5 +1,6 @@
 import { supabase } from "./supabase";
 import { esSupervisor } from "../utils/permisos";
+import { generarPDFBase64 } from "../utils/generarPDF";
 
 // ── Columnas y opciones en el formato de guardar_cotizacion / actualizar_cotizacion
 function datosCotizacion(cot) {
@@ -210,4 +211,19 @@ export async function obtenerSeguimiento(cotizacionId) {
 
   if (error) throw error;
   return data;
+}
+
+// ── enviarCotizacionPorCorreo ────────────────────────────────────
+// Genera el PDF en el navegador y lo manda con la Edge Function
+export async function enviarCotizacionPorCorreo(folio, destinatarios) {
+  const cot = await obtenerCotizacion(folio);
+  if (!cot) throw new Error("Cotización no encontrada");
+  const pdfBase64 = await generarPDFBase64(cot);
+  const { error } = await supabase.functions.invoke("enviar-cotizacion", {
+    body: { folio, email: destinatarios, pdfBase64 },
+  });
+  if (error) {
+    const detalle = await error.context?.json?.().catch(() => null);
+    throw new Error(detalle?.error || error.message);
+  }
 }

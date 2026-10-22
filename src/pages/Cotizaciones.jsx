@@ -1,47 +1,89 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
+import {
+  ChevronLeft,
+  ChevronRight,
+  FileDown,
+  FileSpreadsheet,
+  History,
+  Inbox,
+  Mail,
+  Pencil,
+  Search,
+  Trash2,
+  X,
+} from "lucide-react";
 import {
   obtenerCotizaciones,
   eliminarCotizacion,
-  obtenerCotizacion,
   actualizarEstatus,
   obtenerSeguimiento,
 } from "../services/cotizaciones";
-import { generarPDFBase64 } from "../utils/generarPDF";
 import {
-  estaVencida,
   diasParaVencer,
   fechaDeCotizacion,
+  formatMXN,
   parsearFecha,
+  textoVencimiento,
 } from "../utils/calculos";
 import {
+  esSupervisor,
   puedeEditar as permisoEditar,
   puedeEliminar as permisoEliminar,
   puedeCambiarEstatus,
 } from "../utils/permisos";
 import { useAuth } from "../hooks/useAuth";
-import { SUCURSALES } from "../utils/constantes";
+import { SUCURSALES, SUCURSAL_CORTA } from "../utils/constantes";
 import { supabase } from "../services/supabase";
 import { exportarCotizacionesExcel } from "../utils/exportarExcel";
-import Tooltip from "../components/Tooltip";
 import { useAvisos } from "../hooks/useAvisos";
+import Boton from "../components/ui/Boton";
+import BotonIcono from "../components/ui/BotonIcono";
+import Modal from "../components/ui/Modal";
+import { EtiquetaEstatus } from "../components/ui/Estatus";
+import { campo, etiqueta } from "../components/ui/estilos";
+import EnvioCorreo from "../components/EnvioCorreo";
 
 const ESTATUS = ["En revisión", "Aprobada", "Rechazada"];
+const POR_PAGINA = 15;
 
-const badgeEstatus = (e) => {
-  if (e === "Aprobada")
-    return "bg-emerald-50 text-emerald-700 border border-emerald-200";
-  if (e === "Rechazada") return "bg-red-50 text-red-600 border border-red-200";
-  return "bg-amber-50 text-amber-700 border border-amber-200";
+const fechaCorta = (cot) =>
+  fechaDeCotizacion(cot)?.toLocaleDateString("es-MX", { day: "numeric", month: "short", year: "numeric" }) || cot.fecha;
+
+// Solo las que siguen en revisión: aprobadas y rechazadas ya no requieren acción
+function vencimiento(cot) {
+  if (cot.estatus && cot.estatus !== "En revisión") return null;
+  const dias = diasParaVencer(fechaDeCotizacion(cot), cot.cliente?.vigencia);
+  if (dias === null || dias > 7) return null;
+  return { dias, texto: textoVencimiento(dias), vencida: dias <= 0 };
+}
+
+const Vencimiento = ({ v }) =>
+  v && (
+    <span className={`block text-xs font-medium mt-1 ${v.vencida ? "text-estado-rechazada" : "text-estado-revision"}`}>
+      {v.texto}
+    </span>
+  );
+
+const Total = ({ opciones }) => {
+  if (!opciones?.length) return <span className="text-gray-400">—</span>;
+  return (
+    <div className="whitespace-nowrap">
+      <p className="text-sm font-medium text-gray-800">${formatMXN(opciones[0].total)}</p>
+      {opciones.length > 1 && (
+        <p className="text-xs text-gray-500">
+          y {opciones.length - 1} {opciones.length === 2 ? "opción más" : "opciones más"}
+        </p>
+      )}
+    </div>
+  );
 };
-
-const inputCls =
-  "border border-gray-200 rounded-xl px-4 py-2.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-primary-600/20 focus:border-primary-600 transition-all duration-200";
 
 export default function Cotizaciones() {
   const { perfil } = useAuth();
   const { avisar, confirmar } = useAvisos();
   const navigate = useNavigate();
+  const supervisor = esSupervisor(perfil);
 
   const [cotizaciones, setCotizaciones] = useState([]);
   const [cargando, setCargando] = useState(true);
@@ -49,14 +91,10 @@ export default function Cotizaciones() {
   const [filtroEstatus, setFiltroEstatus] = useState("");
   const [filtroSucursal, setFiltroSucursal] = useState("");
   const [filtroVendedor, setFiltroVendedor] = useState("");
-  const [vendedores, setVendedores] = useState([]);
+  const [nombres, setNombres] = useState({});
   const [fechaDesde, setFechaDesde] = useState("");
   const [fechaHasta, setFechaHasta] = useState("");
-  const [emailModal, setEmailModal] = useState(null);
-  const [email, setEmail] = useState("");
-  const [enviando, setEnviando] = useState(false);
-  const [enviado, setEnviado] = useState(false);
-  const [errorEmail, setErrorEmail] = useState("");
+  const [correoModal, setCorreoModal] = useState(null);
   const [seguimientoModal, setSeguimientoModal] = useState(null);
   const [historial, setHistorial] = useState([]);
   const [cargandoHist, setCargandoHist] = useState(false);
@@ -64,7 +102,6 @@ export default function Cotizaciones() {
   const [notaEstatus, setNotaEstatus] = useState("");
   const [guardandoEst, setGuardandoEst] = useState(false);
   const [pagina, setPagina] = useState(1);
-  const POR_PAGINA = 15;
 
   useEffect(() => {
     obtenerCotizaciones()
@@ -72,19 +109,31 @@ export default function Cotizaciones() {
       .finally(() => setCargando(false));
   }, []);
 
+  // Nombres de quienes crearon cada cotización (supervisores ven las de todos)
   useEffect(() => {
-    if (perfil?.rol === "admin") {
-      supabase
-        .from("perfiles")
-        .select("id, nombre, puesto")
-        .eq("puesto", "vendedor") // ← solo vendedores
-        .order("nombre")
-        .then(({ data }) => setVendedores(data || []));
-    }
-  }, [perfil]);
+    if (!supervisor) return;
+    supabase
+      .from("perfiles")
+      .select("id, nombre")
+      .then(({ data }) => setNombres(Object.fromEntries((data || []).map((p) => [p.id, p.nombre]))));
+  }, [supervisor]);
+
+  const vendedores = useMemo(
+    () =>
+      [...new Set(cotizaciones.map((c) => c.usuario_id))]
+        .map((id) => ({ id, nombre: nombres[id] || "Usuario" }))
+        .sort((a, b) => a.nombre.localeCompare(b.nombre)),
+    [cotizaciones, nombres],
+  );
+
+  // Cualquier filtro regresa a la primera página
+  const conFiltro = (set) => (e) => {
+    set(e.target.value);
+    setPagina(1);
+  };
 
   const eliminar = async (folio) => {
-    const ok = await confirmar(`¿Eliminar la cotización ${folio}?`, {
+    const ok = await confirmar(`¿Eliminar la cotización ${folio}? No se puede deshacer.`, {
       titulo: "Eliminar cotización",
       textoAceptar: "Eliminar",
       peligro: true,
@@ -99,46 +148,13 @@ export default function Cotizaciones() {
     }
   };
 
-  const abrirEmailModal = (cot) => {
-    setEmail(cot.cliente?.email || "");
-    setEnviado(false);
-    setErrorEmail("");
-    setEmailModal({ folio: cot.folio });
-  };
-
-  const enviarCorreo = async () => {
-    if (!email) return setErrorEmail("Escribe un correo electrónico.");
-    const dest = email
-      .split(";")
-      .map((e) => e.trim())
-      .filter(Boolean);
-    if (dest.length === 0) return setErrorEmail("Correo inválido.");
-    setErrorEmail("");
-    setEnviando(true);
-    try {
-      const cot = await obtenerCotizacion(emailModal.folio);
-      if (!cot) throw new Error("Cotización no encontrada");
-      const pdfBase64 = await generarPDFBase64(cot);
-      const { error: errorEnvio } = await supabase.functions.invoke(
-        "enviar-cotizacion",
-        { body: { folio: emailModal.folio, email: dest, pdfBase64 } },
-      );
-      if (errorEnvio) throw errorEnvio;
-      setEnviado(true);
-    } catch (e) {
-      setErrorEmail("No se pudo enviar: " + e.message);
-    }
-    setEnviando(false);
-  };
-
   const abrirSeguimiento = async (cot) => {
     setSeguimientoModal(cot);
     setNuevoEstatus(cot.estatus || "En revisión");
     setNotaEstatus("");
     setCargandoHist(true);
     try {
-      const hist = await obtenerSeguimiento(cot.id);
-      setHistorial(hist);
+      setHistorial(await obtenerSeguimiento(cot.id));
     } catch {
       setHistorial([]);
     }
@@ -146,37 +162,27 @@ export default function Cotizaciones() {
   };
 
   const guardarEstatus = async () => {
-    if (!nuevoEstatus) return;
-
-    // ← Confirmación antes de cambiar
     const estatusActual = seguimientoModal.estatus || "En revisión";
-    if (nuevoEstatus === estatusActual) return; // no cambió nada
+    if (!nuevoEstatus || nuevoEstatus === estatusActual) return;
 
     const ok = await confirmar(
-      `¿Confirmas cambiar el estatus de "${estatusActual}" a "${nuevoEstatus}"?${notaEstatus ? `\n\nNota: ${notaEstatus}` : ""}`,
+      `¿Cambiar el estatus de "${estatusActual}" a "${nuevoEstatus}"?${notaEstatus ? `\n\nNota: ${notaEstatus}` : ""}`,
       { titulo: "Cambiar estatus", textoAceptar: "Cambiar" },
     );
     if (!ok) return;
 
     setGuardandoEst(true);
     try {
-      await actualizarEstatus(
-        seguimientoModal.folio,
-        nuevoEstatus,
-        notaEstatus,
-        perfil,
-      );
+      await actualizarEstatus(seguimientoModal.folio, nuevoEstatus, notaEstatus, perfil);
       setCotizaciones((prev) =>
         prev.map((c) =>
-          c.folio === seguimientoModal.folio
-            ? { ...c, estatus: nuevoEstatus, notas_seguimiento: notaEstatus }
-            : c,
+          c.folio === seguimientoModal.folio ? { ...c, estatus: nuevoEstatus, notas_seguimiento: notaEstatus } : c,
         ),
       );
-      const hist = await obtenerSeguimiento(seguimientoModal.id);
-      setHistorial(hist);
+      setHistorial(await obtenerSeguimiento(seguimientoModal.id));
       setNotaEstatus("");
       setSeguimientoModal((prev) => ({ ...prev, estatus: nuevoEstatus }));
+      avisar(`Estatus cambiado a ${nuevoEstatus}.`, "exito");
     } catch (e) {
       avisar("No se pudo cambiar el estatus: " + e.message);
     }
@@ -193,50 +199,41 @@ export default function Cotizaciones() {
     setPagina(1);
   };
 
-  const hayFiltros =
-    busqueda ||
-    filtroEstatus ||
-    filtroSucursal ||
-    filtroVendedor ||
-    fechaDesde ||
-    fechaHasta;
-
-  const puedeEditar = (cot) => permisoEditar(perfil, cot);
-  const puedeEliminar = (cot) => permisoEliminar(perfil, cot);
+  const hayFiltros = busqueda || filtroEstatus || filtroSucursal || filtroVendedor || fechaDesde || fechaHasta;
 
   const filtradas = cotizaciones.filter((c) => {
+    const q = busqueda.toLowerCase();
     const matchBusqueda =
-      c.cliente?.contacto?.toLowerCase().includes(busqueda.toLowerCase()) ||
-      c.cliente?.atencion?.toLowerCase().includes(busqueda.toLowerCase()) ||
-      c.folio?.toLowerCase().includes(busqueda.toLowerCase());
-    const matchEstatus = filtroEstatus ? c.estatus === filtroEstatus : true;
-    const matchSucursal = filtroSucursal
-      ? c.sucursal?.tipo === filtroSucursal
-      : true;
-    const matchVendedor = filtroVendedor
-      ? c.usuario_id === filtroVendedor
-      : true;
+      c.cliente?.contacto?.toLowerCase().includes(q) ||
+      c.cliente?.atencion?.toLowerCase().includes(q) ||
+      c.folio?.toLowerCase().includes(q);
+    const matchEstatus = !filtroEstatus || (c.estatus || "En revisión") === filtroEstatus;
+    const matchSucursal = !filtroSucursal || c.sucursal?.id === filtroSucursal;
+    const matchVendedor = !filtroVendedor || c.usuario_id === filtroVendedor;
     let matchFecha = true;
-    if (fechaDesde || fechaHasta) {
-      const fechaCot = fechaDeCotizacion(c);
-      if (fechaCot) {
-        if (fechaDesde) matchFecha = matchFecha && fechaCot >= parsearFecha(fechaDesde);
-        if (fechaHasta) matchFecha = matchFecha && fechaCot <= parsearFecha(fechaHasta);
-      }
-    }
-    return (
-      matchBusqueda &&
-      matchEstatus &&
-      matchSucursal &&
-      matchVendedor &&
-      matchFecha
-    );
+    const fechaCot = fechaDeCotizacion(c);
+    if (fechaCot && fechaDesde) matchFecha = matchFecha && fechaCot >= parsearFecha(fechaDesde);
+    if (fechaCot && fechaHasta) matchFecha = matchFecha && fechaCot <= parsearFecha(fechaHasta);
+    return matchBusqueda && matchEstatus && matchSucursal && matchVendedor && matchFecha;
   });
 
   const totalPaginas = Math.ceil(filtradas.length / POR_PAGINA);
-  const paginadas = filtradas.slice(
-    (pagina - 1) * POR_PAGINA,
-    pagina * POR_PAGINA,
+  const paginadas = filtradas.slice((pagina - 1) * POR_PAGINA, pagina * POR_PAGINA);
+  const desde = filtradas.length === 0 ? 0 : (pagina - 1) * POR_PAGINA + 1;
+  const hasta = Math.min(pagina * POR_PAGINA, filtradas.length);
+
+  const acciones = (cot) => (
+    <>
+      <BotonIcono icono={FileDown} etiqueta="Ver PDF" onClick={() => window.open(`/preview/${cot.folio}`, "_blank")} />
+      {permisoEditar(perfil, cot) && (
+        <BotonIcono icono={Pencil} etiqueta="Editar" onClick={() => navigate(`/cotizaciones/${cot.folio}/editar`)} />
+      )}
+      <BotonIcono icono={Mail} etiqueta="Enviar por correo" onClick={() => setCorreoModal(cot)} />
+      <BotonIcono icono={History} etiqueta="Seguimiento" onClick={() => abrirSeguimiento(cot)} />
+      {permisoEliminar(perfil, cot) && (
+        <BotonIcono icono={Trash2} etiqueta="Eliminar" peligro onClick={() => eliminar(cot.folio)} />
+      )}
+    </>
   );
 
   if (cargando)
@@ -251,838 +248,312 @@ export default function Cotizaciones() {
     <>
       <div className="flex flex-col gap-5">
         {/* Encabezado */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3">
           <div>
-            <h2 className="text-xl lg:text-2xl font-bold text-primary-600 tracking-tight">
-              Historial
-            </h2>
-            <p className="text-sm text-gray-400 mt-0.5">
-              Mostrando{" "}
-              <span className="font-semibold text-primary-600">
-                {filtradas.length === 0
-                  ? 0
-                  : Math.min((pagina - 1) * POR_PAGINA + 1, filtradas.length)}
-                –{Math.min(pagina * POR_PAGINA, filtradas.length)}
-              </span>{" "}
-              de <span className="font-semibold">{filtradas.length}</span>{" "}
-              cotizaciones
+            <h2 className="text-2xl font-semibold tracking-tight text-primary-800">Cotizaciones</h2>
+            <p className="text-sm text-gray-500 mt-0.5">
+              {filtradas.length === 0
+                ? "Ninguna coincide con los filtros"
+                : `Mostrando ${desde} a ${hasta} de ${filtradas.length}`}
             </p>
           </div>
-          <button
-            onClick={() =>
-              exportarCotizacionesExcel(
-                filtradas,
-                "Cotizaciones-Puente-Ambiental",
-              )
-            }
-            className="flex items-center gap-2 text-xs font-bold px-4 py-2.5 rounded-xl border transition-all duration-200 hover:scale-105 active:scale-95"
-            style={{
-              background: "linear-gradient(135deg, #ECFDF5, #D1FAE5)",
-              borderColor: "#A7F3D0",
-              color: "#065F46",
-              boxShadow: "0 1px 3px rgba(16,185,129,0.1)",
-            }}
+          <Boton
+            variante="secundario"
+            icono={FileSpreadsheet}
+            onClick={() => exportarCotizacionesExcel(filtradas, "Cotizaciones-Puente-Ambiental")}
+            disabled={filtradas.length === 0}
           >
-            📊 Exportar Excel
-          </button>
+            Exportar a Excel
+          </Boton>
         </div>
 
         {/* Filtros */}
         <div
-          className="bg-white rounded-2xl border border-gray-100 p-4 flex flex-col gap-3"
-          style={{ boxShadow: "0 1px 3px rgba(27,58,107,0.06)" }}
+          className={`bg-white rounded-2xl border border-linea p-4 grid gap-3 grid-cols-2 items-end ${
+            supervisor ? "lg:grid-cols-[2fr_repeat(5,minmax(0,1fr))]" : "lg:grid-cols-[2fr_repeat(3,minmax(0,1fr))]"
+          }`}
         >
-          {/* Búsqueda y estatus */}
-          <div className="flex gap-2">
-            <div className="flex-1 relative">
-              <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 text-sm">
-                🔍
-              </span>
-              <input
-                type="text"
-                placeholder="Buscar por cliente, negocio o folio..."
-                value={busqueda}
-                onChange={(e) => {
-                  setBusqueda(e.target.value);
-                  setPagina(1);
-                }}
-                className={inputCls + " w-full pl-9"}
-              />
-            </div>
-            <select
-              value={filtroEstatus}
-              onChange={(e) => {
-                setFiltroEstatus(e.target.value);
-                setPagina(1);
-              }}
-              className={inputCls}
-            >
+          <div className="relative col-span-2 lg:col-span-1">
+            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" aria-hidden="true" />
+            <input
+              type="search"
+              aria-label="Buscar"
+              placeholder="Buscar por cliente o folio"
+              value={busqueda}
+              onChange={conFiltro(setBusqueda)}
+              className={`${campo} pl-9`}
+            />
+          </div>
+          <label>
+            <span className={etiqueta}>Estatus</span>
+            <select value={filtroEstatus} onChange={conFiltro(setFiltroEstatus)} className={campo}>
               <option value="">Todos</option>
               {ESTATUS.map((e) => (
                 <option key={e}>{e}</option>
               ))}
             </select>
-          </div>
-
-          {/* Filtros admin */}
-          {perfil?.rol === "admin" && (
-            <div className="grid grid-cols-2 gap-2">
-              <select
-                value={filtroSucursal}
-                onChange={(e) => {
-                  setFiltroSucursal(e.target.value);
-                  setPagina(1);
-                }}
-                className={inputCls}
-              >
-                <option value="">🏢 Todas las sucursales</option>
-                {SUCURSALES.map((s) => (
-                  <option key={s.id} value={s.tipo}>
-                    {s.tipo}
-                  </option>
-                ))}
-              </select>
-              <select
-                value={filtroVendedor}
-                onChange={(e) => {
-                  setFiltroVendedor(e.target.value);
-                  setPagina(1);
-                }}
-                className={inputCls}
-              >
-                <option value="">👤 Todos los vendedores</option>
-                {vendedores.map((v) => (
-                  <option key={v.id} value={v.id}>
-                    {v.nombre}
-                  </option>
-                ))}
-              </select>
+          </label>
+          {supervisor && (
+            <>
+              <label>
+                <span className={etiqueta}>Sucursal</span>
+                <select value={filtroSucursal} onChange={conFiltro(setFiltroSucursal)} className={campo}>
+                  <option value="">Todas</option>
+                  {SUCURSALES.map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {SUCURSAL_CORTA[s.id]}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                <span className={etiqueta}>Vendedor</span>
+                <select value={filtroVendedor} onChange={conFiltro(setFiltroVendedor)} className={campo}>
+                  <option value="">Todos</option>
+                  {vendedores.map((v) => (
+                    <option key={v.id} value={v.id}>
+                      {v.nombre}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </>
+          )}
+          <label>
+            <span className={etiqueta}>Desde</span>
+            <input type="date" value={fechaDesde} onChange={conFiltro(setFechaDesde)} className={campo} />
+          </label>
+          <label>
+            <span className={etiqueta}>Hasta</span>
+            <input type="date" value={fechaHasta} onChange={conFiltro(setFechaHasta)} className={campo} />
+          </label>
+          {hayFiltros && (
+            <div className="col-span-full flex justify-end -mb-1">
+              <Boton variante="fantasma" tamaño="sm" icono={X} onClick={limpiarFiltros}>
+                Quitar filtros
+              </Boton>
             </div>
           )}
-
-          {/* Fechas */}
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-gray-400 whitespace-nowrap font-medium">
-              Desde
-            </span>
-            <input
-              type="date"
-              value={fechaDesde}
-              onChange={(e) => {
-                setFechaDesde(e.target.value);
-                setPagina(1);
-              }}
-              className={inputCls + " flex-1"}
-            />
-            <span className="text-xs text-gray-400 whitespace-nowrap font-medium">
-              Hasta
-            </span>
-            <input
-              type="date"
-              value={fechaHasta}
-              onChange={(e) => {
-                setFechaHasta(e.target.value);
-                setPagina(1);
-              }}
-              className={inputCls + " flex-1"}
-            />
-          </div>
-
-          {/* Footer filtros */}
-          <div className="flex items-center justify-between pt-1 border-t border-gray-100">
-            <div className="flex items-center gap-4 text-xs text-gray-400">
-              <div className="flex items-center gap-1.5">
-                <div className="w-2.5 h-2.5 rounded-full bg-red-200 border border-red-300"></div>
-                <span>Vencida</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <div className="w-2.5 h-2.5 rounded-full bg-gray-200 border border-gray-300"></div>
-                <span>Vigente</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <div
-                  className="w-2.5 h-2.5 rounded-full border animate-pulse"
-                  style={{ background: "#FEF3C7", borderColor: "#FDE68A" }}
-                ></div>
-                <span>Vence pronto</span>
-              </div>
-            </div>
-            {hayFiltros && (
-              <button
-                onClick={limpiarFiltros}
-                className="text-xs font-bold text-red-400 hover:text-red-600 px-3 py-1.5 rounded-lg hover:bg-red-50 transition-colors border border-red-100"
-              >
-                × Limpiar filtros
-              </button>
-            )}
-          </div>
         </div>
 
         {/* Lista */}
         {filtradas.length === 0 ? (
-          <div
-            className="bg-white rounded-2xl border border-gray-100 py-20 text-center"
-            style={{ boxShadow: "0 1px 3px rgba(27,58,107,0.06)" }}
-          >
-            <p className="text-5xl mb-4">📋</p>
-            <p className="text-sm font-medium text-gray-500">
-              No se encontraron cotizaciones
+          <div className="bg-white rounded-2xl border border-linea py-16 flex flex-col items-center gap-3 text-center">
+            <Inbox size={32} strokeWidth={1.5} className="text-gray-300" aria-hidden="true" />
+            <p className="text-sm text-gray-600">
+              {cotizaciones.length === 0 ? "Todavía no hay cotizaciones." : "Ninguna cotización coincide con los filtros."}
             </p>
-            <p className="text-xs text-gray-400 mt-1">
-              Intenta ajustar los filtros
-            </p>
+            {hayFiltros && (
+              <Boton variante="secundario" tamaño="sm" onClick={limpiarFiltros}>
+                Quitar filtros
+              </Boton>
+            )}
           </div>
         ) : (
           <>
-            {/* CARDS móvil */}
-            <div className="flex flex-col gap-3 lg:hidden">
-              {paginadas.map((cot) => {
-                const vencida = estaVencida(fechaDeCotizacion(cot), cot.cliente?.vigencia);
-                const vendedor = vendedores.find(
-                  (v) => v.id === cot.usuario_id,
-                );
-                return (
-                  <div
-                    key={cot.folio}
-                    className={`bg-white rounded-2xl border overflow-hidden ${vencida ? "border-red-200" : "border-gray-100"}`}
-                    style={{ boxShadow: "0 1px 3px rgba(27,58,107,0.06)" }}
-                  >
-                    <div
-                      className={`px-4 py-3 flex items-center justify-between ${vencida ? "bg-red-50" : "bg-gray-50/50"}`}
-                    >
-                      <div>
-                        <p className="font-bold text-gray-800 text-sm">
-                          {cot.cliente?.contacto || "—"}
-                        </p>
-                        <p className="text-xs text-gray-400">
-                          {cot.cliente?.atencion}
-                        </p>
-                      </div>
-                      <span
-                        className={`text-xs font-semibold px-2.5 py-1 rounded-lg ${badgeEstatus(cot.estatus)}`}
-                      >
-                        {cot.estatus || "En revisión"}
-                      </span>
+            {/* Tarjetas móvil */}
+            <ul className="flex flex-col gap-3 lg:hidden">
+              {paginadas.map((cot) => (
+                <li key={cot.folio} className="bg-white rounded-2xl border border-linea p-4 flex flex-col gap-3">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="font-medium text-gray-800 text-sm">{cot.cliente?.contacto || "Sin cliente"}</p>
+                      <p className="text-xs text-gray-500 mt-0.5">
+                        <span className="font-mono">{cot.folio}</span>
+                        <span className="ml-2">{fechaCorta(cot)}</span>
+                      </p>
                     </div>
-                    <div className="px-4 py-3 flex flex-col gap-2">
-                      <div className="flex items-center justify-between">
-                        <span className="font-mono text-xs text-gray-400 bg-gray-100 px-2 py-1 rounded-lg">
-                          {cot.folio}
-                        </span>
-                        <span className="text-xs text-gray-400">
-                          {cot.fecha}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-xs bg-primary-50 text-primary-600 font-semibold px-2.5 py-1 rounded-lg border border-primary-100">
-                          {cot.sucursal?.tipo}
-                        </span>
-                        {vencida && (
-                          <span className="text-xs bg-red-50 text-red-500 font-medium px-2 py-1 rounded-lg border border-red-200">
-                            ⚠️ Vencida
-                          </span>
-                        )}
-                        {(() => {
-                          const dias = diasParaVencer(
-                            fechaDeCotizacion(cot),
-                            cot.cliente?.vigencia,
-                          );
-                          if (dias !== null && dias > 0 && dias <= 7)
-                            return (
-                              <span
-                                className="text-xs font-bold px-2.5 py-1 rounded-lg border animate-pulse"
-                                style={{
-                                  background: "#FFFBEB",
-                                  borderColor: "#FDE68A",
-                                  color: "#92400E",
-                                }}
-                              >
-                                ⏰ Vence en {dias}d
-                              </span>
-                            );
-                          return null;
-                        })()}
-                        {perfil?.rol === "admin" && vendedor && (
-                          <span className="text-xs bg-gray-50 text-gray-500 font-medium px-2 py-1 rounded-lg border border-gray-200">
-                            👤 {vendedor.nombre}
-                          </span>
-                        )}
-                      </div>
-                      <div className="flex flex-wrap gap-2">
-                        {cot.opciones?.map((op, j) => (
-                          <span
-                            key={j}
-                            className="text-xs text-gray-500 bg-gray-50 px-2 py-1 rounded-lg border border-gray-100"
-                          >
-                            Op.{j + 1}:{" "}
-                            <span className="font-mono font-semibold text-primary-600">
-                              $
-                              {op.total?.toLocaleString("es-MX", {
-                                minimumFractionDigits: 2,
-                              })}
-                            </span>
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                    <div className="px-4 pb-4 grid grid-cols-5 gap-2">
-                      <button
-                        onClick={() =>
-                          window.open(`/preview/${cot.folio}`, "_blank")
-                        }
-                        className="col-span-1 text-xs font-bold py-2.5 rounded-xl text-white text-center"
-                        style={{
-                          background:
-                            "linear-gradient(135deg, #1B3A6B, #0F2347)",
-                        }}
-                      >
-                        PDF
-                      </button>
-                      {puedeEditar(cot) ? (
-                        <button
-                          onClick={() =>
-                            navigate(`/cotizaciones/${cot.folio}/editar`)
-                          }
-                          className="col-span-1 text-xs py-2.5 rounded-xl border border-gray-200 text-gray-500 hover:bg-gray-50 text-center"
-                        >
-                          ✏️
-                        </button>
-                      ) : (
-                        <div />
-                      )}
-                      <button
-                        onClick={() => abrirEmailModal(cot)}
-                        className="col-span-1 text-xs py-2.5 rounded-xl border border-primary-100 text-primary-600 hover:bg-primary-50 text-center"
-                      >
-                        ✉️
-                      </button>
-                      <button
-                        onClick={() => abrirSeguimiento(cot)}
-                        className="col-span-1 text-xs py-2.5 rounded-xl border border-amber-200 text-amber-600 hover:bg-amber-50 text-center"
-                      >
-                        📋
-                      </button>
-                      {puedeEliminar(cot) ? (
-                        <button
-                          onClick={() => eliminar(cot.folio)}
-                          className="col-span-1 text-xs py-2.5 rounded-xl border border-red-100 text-red-400 hover:bg-red-50 text-center"
-                        >
-                          🗑️
-                        </button>
-                      ) : (
-                        <div />
-                      )}
+                    <div className="text-right flex-shrink-0">
+                      <EtiquetaEstatus estatus={cot.estatus} />
+                      <Vencimiento v={vencimiento(cot)} />
                     </div>
                   </div>
-                );
-              })}
-            </div>
+                  <div className="flex items-end justify-between gap-3">
+                    <div>
+                      <Total opciones={cot.opciones} />
+                      <p className="text-xs text-gray-500 mt-0.5">
+                        {SUCURSAL_CORTA[cot.sucursal?.id]}
+                        {supervisor && `, ${nombres[cot.usuario_id] || "Usuario"}`}
+                      </p>
+                    </div>
+                    <div className="flex items-center -mr-1">{acciones(cot)}</div>
+                  </div>
+                </li>
+              ))}
+            </ul>
 
-            {/* TABLA desktop */}
-            <div
-              className="hidden lg:block bg-white rounded-2xl border border-gray-100 overflow-hidden"
-              style={{ boxShadow: "0 1px 3px rgba(27,58,107,0.06)" }}
-            >
-              <table className="w-full">
+            {/* Tabla escritorio */}
+            <div className="hidden lg:block bg-white rounded-2xl border border-linea overflow-x-auto">
+              <table className="w-full text-sm">
                 <thead>
-                  <tr
-                    style={{
-                      background:
-                        "linear-gradient(135deg, #1B3A6B 0%, #0F2347 100%)",
-                    }}
-                  >
-                    <th className="px-5 py-3.5 text-left text-xs font-bold uppercase tracking-wider text-amber-300">
-                      Cliente
-                    </th>
-                    <th className="px-5 py-3.5 text-left text-xs font-bold uppercase tracking-wider text-blue-200">
-                      Folio
-                    </th>
-                    <th className="px-5 py-3.5 text-left text-xs font-bold uppercase tracking-wider text-blue-200">
-                      Fecha
-                    </th>
-                    <th className="px-5 py-3.5 text-left text-xs font-bold uppercase tracking-wider text-blue-200">
-                      Sucursal
-                    </th>
-                    <th className="px-5 py-3.5 text-left text-xs font-bold uppercase tracking-wider text-blue-200">
-                      Opciones
-                    </th>
-                    <th className="px-5 py-3.5 text-left text-xs font-bold uppercase tracking-wider text-blue-200">
-                      Estatus
-                    </th>
-                    {perfil?.rol === "admin" && (
-                      <th className="px-5 py-3.5 text-left text-xs font-bold uppercase tracking-wider text-blue-200">
-                        Vendedor
-                      </th>
-                    )}
-                    <th className="px-5 py-3.5 text-right text-xs font-bold uppercase tracking-wider text-blue-200">
-                      Acciones
+                  <tr className="border-b border-linea text-left text-xs font-medium text-gray-500">
+                    <th className="px-5 py-3 font-medium">Cliente y folio</th>
+                    <th className="px-4 py-3 font-medium">Fecha</th>
+                    <th className="px-4 py-3 font-medium">Total</th>
+                    <th className="px-4 py-3 font-medium">Estatus</th>
+                    {supervisor && <th className="px-4 py-3 font-medium">Vendedor</th>}
+                    <th className="px-4 py-3">
+                      <span className="sr-only">Acciones</span>
                     </th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-50">
-                  {paginadas.map((cot, i) => {
-                    const vencida = estaVencida(
-                      fechaDeCotizacion(cot),
-                      cot.cliente?.vigencia,
-                    );
-                    const vendedor = vendedores.find(
-                      (v) => v.id === cot.usuario_id,
-                    );
-                    return (
-                      <tr
-                        key={cot.folio}
-                        className={`hover:bg-primary-50/30 transition-colors duration-150 ${
-                          vencida
-                            ? "bg-red-50/60"
-                            : i % 2 === 0
-                              ? "bg-white"
-                              : "bg-gray-50/30"
-                        }`}
-                      >
-                        <td className="px-5 py-4">
-                          <p className="font-semibold text-gray-800 text-sm">
-                            {cot.cliente?.contacto || "—"}
-                          </p>
-                          <p className="text-xs text-gray-400 mt-0.5">
-                            {cot.cliente?.atencion}
-                          </p>
-                        </td>
-                        <td className="px-5 py-4">
-                          <span className="font-mono text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-lg">
-                            {cot.folio}
-                          </span>
-                        </td>
-                        <td className="px-5 py-4 text-gray-500 text-xs">
-                          {cot.fecha}
-                        </td>
-                        <td className="px-5 py-4">
-                          <div className="flex flex-col gap-1">
-                            <span className="text-xs bg-primary-50 text-primary-600 font-semibold px-2.5 py-1 rounded-lg w-fit border border-primary-100">
-                              {cot.sucursal?.tipo}
-                            </span>
-                            {vencida && (
-                              <span className="text-xs bg-red-50 text-red-500 font-medium px-2.5 py-1 rounded-lg w-fit border border-red-200">
-                                ⚠️ Vencida
-                              </span>
-                            )}
-                            {(() => {
-                              const dias = diasParaVencer(
-                                fechaDeCotizacion(cot),
-                                cot.cliente?.vigencia,
-                              );
-                              if (dias !== null && dias > 0 && dias <= 7)
-                                return (
-                                  <span
-                                    className="text-xs font-bold px-2.5 py-1 rounded-lg w-fit border animate-pulse"
-                                    style={{
-                                      background: "#FFFBEB",
-                                      borderColor: "#FDE68A",
-                                      color: "#92400E",
-                                    }}
-                                  >
-                                    ⏰ Vence en {dias}d
-                                  </span>
-                                );
-                              return null;
-                            })()}
-                          </div>
-                        </td>
-                        <td className="px-5 py-4">
-                          <div className="flex flex-col gap-1">
-                            {cot.opciones?.map((op, j) => (
-                              <div key={j} className="text-xs text-gray-500">
-                                <span className="font-semibold text-primary-600">
-                                  Op.{j + 1}
-                                </span>{" "}
-                                <span className="font-mono">
-                                  $
-                                  {op.total?.toLocaleString("es-MX", {
-                                    minimumFractionDigits: 2,
-                                  })}
-                                </span>
-                              </div>
-                            ))}
-                          </div>
-                        </td>
-                        <td className="px-5 py-4">
-                          <span
-                            className={`text-xs font-semibold px-2.5 py-1 rounded-lg ${badgeEstatus(cot.estatus)}`}
-                          >
-                            {cot.estatus || "En revisión"}
-                          </span>
-                        </td>
-                        {perfil?.rol === "admin" && (
-                          <td className="px-5 py-4">
-                            <div className="flex items-center gap-2">
-                              <div
-                                className="w-6 h-6 rounded-lg flex items-center justify-center text-xs font-bold flex-shrink-0"
-                                style={{
-                                  background:
-                                    "linear-gradient(135deg, #FFE566, #FFD700)",
-                                  color: "#1B3A6B",
-                                }}
-                              >
-                                {vendedor?.nombre?.charAt(0)?.toUpperCase() ||
-                                  "?"}
-                              </div>
-                              <p className="text-xs text-gray-600 font-medium">
-                                {vendedor?.nombre || "—"}
-                              </p>
-                            </div>
-                          </td>
-                        )}
-                        <td className="px-5 py-4">
-                          <div className="flex items-center justify-end gap-1.5">
-                            <Tooltip text="Ver PDF">
-                              <button
-                                onClick={() =>
-                                  window.open(`/preview/${cot.folio}`, "_blank")
-                                }
-                                className="text-xs font-semibold px-3 py-1.5 rounded-lg text-white"
-                                style={{
-                                  background:
-                                    "linear-gradient(135deg, #1B3A6B, #0F2347)",
-                                }}
-                              >
-                                PDF
-                              </button>
-                            </Tooltip>
-                            {puedeEditar(cot) && (
-                              <Tooltip text="Editar cotización">
-                                <button
-                                  onClick={() =>
-                                    navigate(
-                                      `/cotizaciones/${cot.folio}/editar`,
-                                    )
-                                  }
-                                  className="text-xs px-3 py-1.5 rounded-lg border border-gray-200 text-gray-500 hover:border-primary-600 hover:text-primary-600 hover:bg-primary-50 transition-all"
-                                >
-                                  ✏️
-                                </button>
-                              </Tooltip>
-                            )}
-                            <Tooltip text="Enviar por correo">
-                              <button
-                                onClick={() => abrirEmailModal(cot)}
-                                className="text-xs px-3 py-1.5 rounded-lg border border-primary-100 text-primary-600 hover:bg-primary-50 transition-all"
-                              >
-                                ✉️
-                              </button>
-                            </Tooltip>
-                            <Tooltip text="Ver seguimiento">
-                              <button
-                                onClick={() => abrirSeguimiento(cot)}
-                                className="text-xs px-3 py-1.5 rounded-lg border border-amber-200 text-amber-600 hover:bg-amber-50 transition-all"
-                              >
-                                📋
-                              </button>
-                            </Tooltip>
-                            {puedeEliminar(cot) && (
-                              <Tooltip text="Eliminar cotización">
-                                <button
-                                  onClick={() => eliminar(cot.folio)}
-                                  className="text-xs px-3 py-1.5 rounded-lg border border-red-100 text-red-400 hover:bg-red-50 transition-all"
-                                >
-                                  🗑️
-                                </button>
-                              </Tooltip>
-                            )}
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
+                <tbody className="divide-y divide-linea">
+                  {paginadas.map((cot) => (
+                    <tr key={cot.folio} className="hover:bg-primary-50/30 transition-colors align-top">
+                      <td className="px-5 py-3.5 max-w-[18rem]">
+                        <p className="font-medium text-gray-800 truncate" title={cot.cliente?.contacto}>
+                          {cot.cliente?.contacto || "Sin cliente"}
+                        </p>
+                        <p className="text-xs text-gray-500 font-mono">{cot.folio}</p>
+                      </td>
+                      <td className="px-4 py-3.5 whitespace-nowrap">
+                        <p className="text-gray-700">{fechaCorta(cot)}</p>
+                        <p className="text-xs text-gray-500">{SUCURSAL_CORTA[cot.sucursal?.id]}</p>
+                      </td>
+                      <td className="px-4 py-3.5">
+                        <Total opciones={cot.opciones} />
+                      </td>
+                      <td className="px-4 py-3.5 whitespace-nowrap">
+                        <EtiquetaEstatus estatus={cot.estatus} />
+                        <Vencimiento v={vencimiento(cot)} />
+                      </td>
+                      {supervisor && (
+                        <td className="px-4 py-3.5 text-gray-600 max-w-[8rem] truncate">{nombres[cot.usuario_id] || "Usuario"}</td>
+                      )}
+                      <td className="px-4 py-2.5">
+                        <div className="flex items-center justify-end gap-0.5">{acciones(cot)}</div>
+                      </td>
+                    </tr>
+                  ))}
                 </tbody>
               </table>
             </div>
 
-            {/* PAGINACIÓN */}
+            {/* Paginación */}
             {totalPaginas > 1 && (
-              <div className="flex items-center justify-center gap-2">
-                <button
+              <nav className="flex items-center justify-center gap-1" aria-label="Paginación">
+                <Boton
+                  variante="fantasma"
+                  tamaño="sm"
+                  icono={ChevronLeft}
                   onClick={() => setPagina((p) => Math.max(1, p - 1))}
                   disabled={pagina === 1}
-                  className="text-xs font-bold px-4 py-2.5 rounded-xl border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-40 transition-all duration-200 hover:scale-105 active:scale-95"
                 >
-                  ← Anterior
-                </button>
-                <div className="flex items-center gap-1">
-                  {Array.from({ length: Math.min(5, totalPaginas) }, (_, i) => {
-                    const p = pagina <= 3 ? i + 1 : pagina - 2 + i;
-                    if (p < 1 || p > totalPaginas) return null;
-                    return (
-                      <button
-                        key={p}
-                        onClick={() => setPagina(p)}
-                        className="w-9 h-9 rounded-xl text-xs font-bold transition-all duration-200 hover:scale-105"
-                        style={
-                          p === pagina
-                            ? {
-                                background:
-                                  "linear-gradient(135deg, #1B3A6B, #0F2347)",
-                                color: "white",
-                                boxShadow: "0 2px 8px rgba(27,58,107,0.3)",
-                              }
-                            : { border: "1px solid #E5E7EB", color: "#6B7280" }
-                        }
-                      >
-                        {p}
-                      </button>
-                    );
-                  })}
-                </div>
-                <button
-                  onClick={() =>
-                    setPagina((p) => Math.min(totalPaginas, p + 1))
-                  }
+                  Anterior
+                </Boton>
+                {Array.from({ length: Math.min(5, totalPaginas) }, (_, i) => {
+                  const p = Math.min(Math.max(1, pagina - 2), Math.max(1, totalPaginas - 4)) + i;
+                  return (
+                    <button
+                      key={p}
+                      type="button"
+                      onClick={() => setPagina(p)}
+                      aria-current={p === pagina ? "page" : undefined}
+                      className={`w-8 h-8 rounded-lg text-xs font-semibold transition-colors ${
+                        p === pagina ? "bg-primary-600 text-white" : "text-gray-600 hover:bg-primary-50"
+                      }`}
+                    >
+                      {p}
+                    </button>
+                  );
+                })}
+                <Boton
+                  variante="fantasma"
+                  tamaño="sm"
+                  onClick={() => setPagina((p) => Math.min(totalPaginas, p + 1))}
                   disabled={pagina === totalPaginas}
-                  className="text-xs font-bold px-4 py-2.5 rounded-xl border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-40 transition-all duration-200 hover:scale-105 active:scale-95"
                 >
-                  Siguiente →
-                </button>
-              </div>
+                  Siguiente
+                  <ChevronRight size={14} aria-hidden="true" />
+                </Boton>
+              </nav>
             )}
           </>
         )}
       </div>
 
-      {/* Modal correo */}
-      {emailModal && (
-        <div
-          className="fixed inset-0 flex items-center justify-center z-50 px-4"
-          style={{
-            background: "rgba(9,22,41,0.6)",
-            backdropFilter: "blur(4px)",
-          }}
-        >
-          <div
-            className="bg-white rounded-2xl w-full max-w-sm flex flex-col overflow-hidden"
-            style={{ boxShadow: "0 25px 50px rgba(9,22,41,0.25)" }}
-          >
-            <div
-              className="px-6 py-5 flex items-center justify-between"
-              style={{
-                background: "linear-gradient(135deg, #1B3A6B 0%, #0F2347 100%)",
-              }}
-            >
-              <div>
-                <h2 className="text-base font-bold text-white">
-                  Enviar cotización
-                </h2>
-                <p className="text-xs text-blue-300 font-mono mt-0.5">
-                  {emailModal.folio}
-                </p>
-              </div>
-              <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center text-xl">
-                ✉️
-              </div>
-            </div>
-            <div className="p-6 flex flex-col gap-4">
-              {enviado ? (
-                <div className="bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-4 text-center">
-                  <p className="text-2xl mb-2">✅</p>
-                  <p className="text-sm font-bold text-emerald-700">
-                    ¡Correo enviado!
-                  </p>
-                  <p className="text-xs text-emerald-600 mt-1">
-                    {email
-                      .split(";")
-                      .map((e) => e.trim())
-                      .filter(Boolean)
-                      .join(", ")}
-                  </p>
-                </div>
-              ) : (
-                <>
-                  <div>
-                    <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5 block">
-                      Correo del cliente
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="correo1@mail.com; correo2@mail.com"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      className={inputCls + " w-full"}
-                    />
-                    <p className="text-xs text-gray-400 mt-1">
-                      Separa múltiples correos con punto y coma
-                    </p>
-                  </div>
-                  {errorEmail && (
-                    <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 flex items-center gap-2">
-                      <span className="text-red-500">⚠️</span>
-                      <p className="text-xs text-red-600">{errorEmail}</p>
-                    </div>
-                  )}
-                  <button
-                    onClick={enviarCorreo}
-                    disabled={enviando}
-                    className="w-full text-white font-semibold text-sm py-3 rounded-xl disabled:opacity-50"
-                    style={{
-                      background: "linear-gradient(135deg, #1B3A6B, #0F2347)",
-                    }}
-                  >
-                    {enviando ? "⏳ Enviando..." : "📤 Enviar correo"}
-                  </button>
-                </>
-              )}
-              <button
-                onClick={() => setEmailModal(null)}
-                className="w-full border border-gray-200 text-gray-500 text-sm py-2.5 rounded-xl hover:bg-gray-50 transition-colors"
-              >
-                Cerrar
-              </button>
-            </div>
-          </div>
-        </div>
+      {/* Enviar por correo */}
+      {correoModal && (
+        <Modal titulo="Enviar cotización" subtitulo={correoModal.folio} onCerrar={() => setCorreoModal(null)}>
+          <EnvioCorreo folio={correoModal.folio} emailInicial={correoModal.cliente?.email || ""} />
+        </Modal>
       )}
 
-      {/* Modal seguimiento */}
+      {/* Seguimiento */}
       {seguimientoModal && (
-        <div
-          className="fixed inset-0 flex items-center justify-center z-50 px-4"
-          style={{
-            background: "rgba(9,22,41,0.6)",
-            backdropFilter: "blur(4px)",
-          }}
-        >
-          <div
-            className="bg-white rounded-2xl w-full max-w-md flex flex-col overflow-hidden"
-            style={{ boxShadow: "0 25px 50px rgba(9,22,41,0.25)" }}
-          >
-            <div
-              className="px-6 py-5 flex items-center justify-between"
-              style={{
-                background: "linear-gradient(135deg, #1B3A6B 0%, #0F2347 100%)",
-              }}
-            >
-              <div>
-                <h2 className="text-base font-bold text-white">Seguimiento</h2>
-                <p className="text-xs text-blue-300 font-mono mt-0.5">
-                  {seguimientoModal.folio}
-                </p>
-              </div>
-              <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center text-xl">
-                📋
-              </div>
-            </div>
-            <div className="p-6 flex flex-col gap-4 max-h-[70vh] overflow-y-auto">
-              <div className="flex items-center justify-between bg-gray-50 rounded-xl px-4 py-3 border border-gray-100">
-                <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                  Estatus actual
-                </span>
-                <span
-                  className={`text-xs font-bold px-3 py-1 rounded-lg ${badgeEstatus(seguimientoModal.estatus)}`}
-                >
-                  {seguimientoModal.estatus || "En revisión"}
-                </span>
-              </div>
-              {puedeCambiarEstatus(perfil) && (
-                <div
-                  className="flex flex-col gap-3 border border-gray-200 rounded-xl p-4"
-                  style={{
-                    background: "linear-gradient(135deg, #F8FAFF, #F0F4FF)",
-                  }}
-                >
-                  <p className="text-xs font-bold text-gray-600 uppercase tracking-widest">
-                    Actualizar estatus
-                  </p>
-                  <select
-                    value={nuevoEstatus}
-                    onChange={(e) => setNuevoEstatus(e.target.value)}
-                    className={inputCls + " w-full"}
-                  >
-                    {ESTATUS.map((e) => (
-                      <option key={e}>{e}</option>
-                    ))}
-                  </select>
-                  <textarea
-                    placeholder="Nota de seguimiento (opcional)..."
-                    value={notaEstatus}
-                    onChange={(e) => setNotaEstatus(e.target.value)}
-                    rows={2}
-                    className={inputCls + " w-full resize-none"}
-                  />
-                  <button
-                    onClick={guardarEstatus}
-                    disabled={guardandoEst}
-                    className="text-white text-sm font-bold py-2.5 rounded-xl disabled:opacity-50"
-                    style={{
-                      background: "linear-gradient(135deg, #1B3A6B, #0F2347)",
-                    }}
-                  >
-                    {guardandoEst ? "Guardando..." : "💾 Guardar cambio"}
-                  </button>
-                </div>
-              )}
-              <div>
-                <p className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-3">
-                  Historial
-                </p>
-                {cargandoHist ? (
-                  <div className="flex justify-center py-6">
-                    <div className="w-5 h-5 border-2 border-primary-600/20 border-t-primary-600 rounded-full animate-spin"></div>
-                  </div>
-                ) : historial.length === 0 ? (
-                  <div className="text-center py-6 text-gray-400">
-                    <p className="text-2xl mb-2">📭</p>
-                    <p className="text-xs">Sin cambios registrados aún</p>
-                  </div>
-                ) : (
-                  <div className="flex flex-col gap-2">
-                    {historial.map((h) => (
-                      <div
-                        key={h.id}
-                        className="border border-gray-100 rounded-xl px-4 py-3 bg-white"
-                        style={{ boxShadow: "0 1px 3px rgba(27,58,107,0.04)" }}
-                      >
-                        <div className="flex items-center justify-between mb-2 flex-wrap gap-2">
-                          <div className="flex items-center gap-2">
-                            <span
-                              className={`text-xs font-semibold px-2 py-0.5 rounded-lg ${badgeEstatus(h.estatus_anterior)}`}
-                            >
-                              {h.estatus_anterior}
-                            </span>
-                            <span className="text-gray-300 text-xs">→</span>
-                            <span
-                              className={`text-xs font-semibold px-2 py-0.5 rounded-lg ${badgeEstatus(h.estatus_nuevo)}`}
-                            >
-                              {h.estatus_nuevo}
-                            </span>
-                          </div>
-
-                          <span className="text-xs text-gray-400 font-mono">
-                            {new Date(h.created_at).toLocaleDateString("es-MX")}
-                          </span>
-                        </div>
-                        {h.nota && (
-                          <p className="text-xs text-gray-600 bg-gray-50 rounded-lg px-3 py-2 mt-1">
-                            "{h.nota}"
-                          </p>
-                        )}
-                        <p className="text-xs text-gray-400 mt-1.5">
-                          por{" "}
-                          <span className="font-medium text-gray-500">
-                            {h.nombre_usuario || "Usuario"}
-                          </span>
-                        </p>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-            <div className="px-6 pb-6 pt-2 border-t border-gray-100">
-              <button
-                onClick={() => setSeguimientoModal(null)}
-                className="w-full border border-gray-200 text-gray-500 text-sm py-2.5 rounded-xl hover:bg-gray-50 transition-colors font-medium"
-              >
-                Cerrar
-              </button>
-            </div>
+        <Modal titulo="Seguimiento" subtitulo={seguimientoModal.folio} onCerrar={() => setSeguimientoModal(null)}>
+          <div className="flex items-center justify-between">
+            <span className="text-sm text-gray-600">Estatus actual</span>
+            <EtiquetaEstatus estatus={seguimientoModal.estatus} />
           </div>
-        </div>
+
+          {puedeCambiarEstatus(perfil) && (
+            <div className="rounded-xl border border-linea p-4 flex flex-col gap-3">
+              <div>
+                <label htmlFor="nuevo-estatus" className={etiqueta}>
+                  Cambiar a
+                </label>
+                <select
+                  id="nuevo-estatus"
+                  value={nuevoEstatus}
+                  onChange={(e) => setNuevoEstatus(e.target.value)}
+                  className={campo}
+                >
+                  {ESTATUS.map((e) => (
+                    <option key={e}>{e}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label htmlFor="nota-estatus" className={etiqueta}>
+                  Nota para el vendedor (opcional)
+                </label>
+                <textarea
+                  id="nota-estatus"
+                  value={notaEstatus}
+                  onChange={(e) => setNotaEstatus(e.target.value)}
+                  rows={2}
+                  className={`${campo} resize-none`}
+                />
+              </div>
+              <Boton
+                onClick={guardarEstatus}
+                disabled={guardandoEst || nuevoEstatus === (seguimientoModal.estatus || "En revisión")}
+              >
+                {guardandoEst ? "Guardando..." : "Guardar estatus"}
+              </Boton>
+            </div>
+          )}
+
+          <div>
+            <h3 className="text-sm font-semibold text-primary-800 mb-3">Historial</h3>
+            {cargandoHist ? (
+              <div className="flex justify-center py-6">
+                <div className="w-5 h-5 border-2 border-primary-600/20 border-t-primary-600 rounded-full animate-spin"></div>
+              </div>
+            ) : historial.length === 0 ? (
+              <p className="text-sm text-gray-500 py-2">Aún no hay cambios de estatus.</p>
+            ) : (
+              <ol className="flex flex-col gap-4 border-l border-linea ml-1.5">
+                {historial.map((h) => (
+                  <li key={h.id} className="pl-4 relative">
+                    <span className="absolute -left-[5px] top-1.5 w-2.5 h-2.5 rounded-full bg-primary-600" aria-hidden="true" />
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <EtiquetaEstatus estatus={h.estatus_anterior} />
+                      <ChevronRight size={14} className="text-gray-400" aria-label="a" />
+                      <EtiquetaEstatus estatus={h.estatus_nuevo} />
+                    </div>
+                    {h.nota && <p className="text-sm text-gray-700 mt-2">{h.nota}</p>}
+                    <p className="text-xs text-gray-500 mt-1">
+                      {h.nombre_usuario || "Usuario"},{" "}
+                      {new Date(h.created_at).toLocaleString("es-MX", { dateStyle: "medium", timeStyle: "short" })}
+                    </p>
+                  </li>
+                ))}
+              </ol>
+            )}
+          </div>
+        </Modal>
       )}
     </>
   );

@@ -13,7 +13,7 @@ import {
 import { obtenerCotizaciones } from "../services/cotizaciones";
 import { supabase } from "../services/supabase";
 import { useAuth } from "../hooks/useAuth";
-import { diasParaVencer, fechaDeCotizacion } from "../utils/calculos";
+import { diasParaVencer, fechaDeCotizacion, textoVencimiento } from "../utils/calculos";
 import { SUCURSALES } from "../utils/constantes";
 import { esSupervisor } from "../utils/permisos";
 import Boton from "../components/ui/Boton";
@@ -48,12 +48,6 @@ function resumir(lista) {
 }
 
 const plural = (n, uno, varios) => `${n} ${n === 1 ? uno : varios}`;
-
-const textoVencimiento = (dias) => {
-  if (dias < 0) return `Venció hace ${plural(-dias, "día", "días")}`;
-  if (dias === 0) return "Venció hoy";
-  return `Vence en ${plural(dias, "día", "días")}`;
-};
 
 // ── Contenedor: carga los datos ─────────────────────────────────
 export default function Dashboard() {
@@ -159,18 +153,13 @@ export function DashboardVista({ cotizaciones, vendedores, perfil, hoy: hoyProp 
   return (
     <div className="flex flex-col gap-5 lg:gap-6 tabular-nums">
       {/* Saludo */}
-      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3">
-        <div>
-          <h2 className="text-2xl font-semibold tracking-tight text-primary-800">
-            Hola, {perfil?.nombre?.split(" ")[0] || "Usuario"}
-          </h2>
-          <p className="text-sm text-gray-500 mt-0.5">
-            {supervisor ? "Cotizaciones de todas las sucursales" : "Tus cotizaciones"}
-          </p>
-        </div>
-        <Boton icono={Plus} onClick={() => navigate("/nueva")} className="w-full sm:w-auto">
-          Nueva cotización
-        </Boton>
+      <div>
+        <h2 className="text-2xl font-semibold tracking-tight text-primary-800">
+          Hola, {perfil?.nombre?.split(" ")[0] || "Usuario"}
+        </h2>
+        <p className="text-sm text-gray-500 mt-0.5">
+          {supervisor ? "Cotizaciones de todas las sucursales" : "Tus cotizaciones"}
+        </p>
       </div>
 
       {/* Resumen del período */}

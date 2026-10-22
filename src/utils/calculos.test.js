@@ -7,6 +7,7 @@ import {
   estaVencida,
   fechaDeCotizacion,
   parsearFecha,
+  textoVencimiento,
 } from './calculos'
 
 describe('diasVigencia', () => {
@@ -106,5 +107,17 @@ describe('parsearFecha', () => {
     vi.setSystemTime(new Date(2026, 9, 22, 12, 0))
     expect(diasParaVencer('2026-10-15', '10 DÍAS')).toBe(3)
     vi.useRealTimers()
+  })
+})
+
+describe('textoVencimiento', () => {
+  it.each([
+    [-3, 'Venció hace 3 días'],
+    [-1, 'Venció hace 1 día'],
+    [0, 'Venció hoy'],
+    [1, 'Vence en 1 día'],
+    [5, 'Vence en 5 días'],
+  ])('%i → %s', (dias, texto) => {
+    expect(textoVencimiento(dias)).toBe(texto)
   })
 })

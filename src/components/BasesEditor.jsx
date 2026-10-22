@@ -1,5 +1,8 @@
 import { useState } from "react";
+import { Plus, X } from "lucide-react";
 import { BASES } from "../utils/constantes";
+import Boton from "./ui/Boton";
+import { campo } from "./ui/estilos";
 
 export default function BasesEditor({ basesExtra, setBasesExtra }) {
   const [nueva, setNueva] = useState("");
@@ -11,93 +14,54 @@ export default function BasesEditor({ basesExtra, setBasesExtra }) {
     setNueva("");
   };
 
-  const quitar = (i) =>
-    setBasesExtra((prev) => prev.filter((_, idx) => idx !== i));
+  const quitar = (i) => setBasesExtra((prev) => prev.filter((_, idx) => idx !== i));
 
   return (
     <div className="flex flex-col gap-4">
-      {/* Bases default */}
       <div>
-        <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">
-          Bases por defecto (no editables)
-        </p>
-        <div className="flex flex-col gap-1.5">
+        <p className="text-xs text-gray-500 mb-2">Siempre se incluyen:</p>
+        <ul className="list-disc pl-5 flex flex-col gap-1 text-sm text-gray-600 marker:text-gray-300">
           {BASES.map((b, i) => (
-            <div
-              key={i}
-              className="flex items-start gap-3 text-xs text-gray-500 rounded-xl px-3 py-2.5 border border-gray-100"
-              style={{ background: "#F8FAFF" }}
-            >
-              <span className="text-gray-300 mt-0.5 flex-shrink-0 font-bold">
-                •
-              </span>
-              <span className="leading-relaxed">{b}</span>
-            </div>
+            <li key={i}>{b}</li>
           ))}
-        </div>
+        </ul>
       </div>
 
-      {/* Bases personalizadas */}
       {basesExtra.length > 0 && (
         <div>
-          <p className="text-xs font-bold text-primary-600 uppercase tracking-widest mb-2">
-            Bases personalizadas
-          </p>
-          <div className="flex flex-col gap-1.5">
+          <p className="text-xs text-gray-500 mb-2">Agregadas para esta cotización:</p>
+          <ul className="flex flex-col gap-1.5">
             {basesExtra.map((b, i) => (
-              <div
-                key={i}
-                className="flex items-start gap-3 text-xs rounded-xl px-3 py-2.5 border border-primary-100 group"
-                style={{
-                  background: "linear-gradient(135deg, #EEF2FF, #DBEAFE)",
-                }}
-              >
-                <span className="text-primary-400 mt-0.5 flex-shrink-0 font-bold">
-                  •
-                </span>
-                <span className="flex-1 text-primary-700 leading-relaxed font-medium">
-                  {b}
-                </span>
+              <li key={i} className="flex items-start gap-2 rounded-lg bg-primary-50 px-3 py-2 text-sm text-primary-800">
+                <span className="flex-1">{b}</span>
                 <button
                   type="button"
                   onClick={() => quitar(i)}
-                  className="text-red-300 hover:text-red-500 ml-2 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-all duration-200 text-base leading-none"
+                  aria-label={`Quitar "${b}"`}
+                  className="w-6 h-6 -my-0.5 rounded-md flex items-center justify-center text-primary-600/60 hover:text-estado-rechazada hover:bg-white flex-shrink-0"
                 >
-                  ×
+                  <X size={14} aria-hidden="true" />
                 </button>
-              </div>
+              </li>
             ))}
-          </div>
+          </ul>
         </div>
       )}
 
-      {/* Agregar nueva */}
       <div className="flex gap-2">
         <input
           type="text"
-          placeholder="Escribe una base personalizada y presiona Enter..."
+          aria-label="Nueva base"
+          placeholder="Agregar una base para esta cotización"
           value={nueva}
           onChange={(e) => setNueva(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && agregar()}
-          className="flex-1 border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-600/20 focus:border-primary-600 bg-white transition-all duration-200"
+          className={campo}
         />
-        <button
-          type="button"
-          onClick={agregar}
-          className="text-white text-sm font-bold px-5 py-2.5 rounded-xl transition-all duration-200 whitespace-nowrap hover:scale-105 active:scale-95"
-          style={{ background: "linear-gradient(135deg, #1B3A6B, #0F2347)" }}
-        >
-          + Agregar
-        </button>
+        <Boton variante="secundario" icono={Plus} onClick={agregar} disabled={!nueva.trim()} className="flex-shrink-0">
+          Agregar
+        </Boton>
       </div>
-
-      {basesExtra.length > 0 && (
-        <p className="text-xs text-gray-400 text-center">
-          {basesExtra.length} base{basesExtra.length !== 1 ? "s" : ""}{" "}
-          personalizada{basesExtra.length !== 1 ? "s" : ""} agregada
-          {basesExtra.length !== 1 ? "s" : ""}
-        </p>
-      )}
     </div>
   );
 }

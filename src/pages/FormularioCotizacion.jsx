@@ -1,13 +1,30 @@
 import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import {
+  Building2,
+  Check,
+  MapPin,
+  Minus,
+  Package,
+  Plus,
+  Receipt,
+  Save,
+  ScrollText,
+  Search,
+  Trash2,
+  TriangleAlert,
+  UserRound,
+  X,
+} from "lucide-react";
 import { useCotizacion } from "../hooks/useCotizacion";
-import { SUCURSALES, VIGENCIAS } from "../utils/constantes";
+import { SUCURSALES, SUCURSAL_CORTA, VIGENCIAS } from "../utils/constantes";
 import {
   fechaHoy,
   calcularServicio,
   calcularTotalesOpcion,
   estaVencida,
   fechaDeCotizacion,
+  formatMXN,
 } from "../utils/calculos";
 import {
   obtenerCotizacion,
@@ -20,28 +37,66 @@ import { useAuth } from "../hooks/useAuth";
 import BasesEditor from "../components/BasesEditor";
 import { esSupervisor } from "../utils/permisos";
 import { useAvisos } from "../hooks/useAvisos";
+import Boton from "../components/ui/Boton";
+import BotonIcono from "../components/ui/BotonIcono";
+import Seccion from "../components/ui/Seccion";
+import { campo, etiqueta } from "../components/ui/estilos";
 
-const input =
-  "border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-primary-600/20 focus:border-primary-600 w-full bg-white transition-all duration-200";
-const inputSm =
-  "border border-gray-200 rounded-xl px-3 py-2 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-primary-600/20 focus:border-primary-600 w-full bg-white transition-all duration-200";
-const label =
-  "text-xs font-semibold text-gray-500 mb-1.5 block uppercase tracking-wide";
 const PAGOS = ["MES SERVIDO", "MES CORRIENTE"];
-const btnCounter =
-  "w-9 h-9 rounded-xl border border-gray-200 text-gray-500 hover:border-primary-600 hover:text-primary-600 hover:bg-primary-50 font-bold flex items-center justify-center flex-shrink-0 transition-all duration-200";
 
-const SectionHeader = ({ title, icon }) => (
-  <div
-    className="px-6 py-4 border-b border-white/10 flex items-center gap-3"
-    style={{ background: "linear-gradient(135deg, #1B3A6B 0%, #0F2347 100%)" }}
-  >
-    {icon && <span className="text-lg">{icon}</span>}
-    <h2 className="text-xs font-bold text-amber-300 uppercase tracking-widest">
-      {title}
-    </h2>
-  </div>
-);
+// Número entero con botones − / +
+function Contador({ id, etiqueta: texto, valor, onCambio, min = 1, max = Infinity }) {
+  const boton =
+    "w-9 h-10 flex items-center justify-center text-gray-500 hover:text-primary-600 hover:bg-primary-50 disabled:opacity-30 disabled:hover:bg-transparent";
+  return (
+    <div>
+      <label htmlFor={id} className={etiqueta}>
+        {texto}
+      </label>
+      <div className="flex items-stretch border border-linea rounded-xl overflow-hidden focus-within:ring-2 focus-within:ring-primary-600/20 focus-within:border-primary-600">
+        <button type="button" className={boton} onClick={() => onCambio(Math.max(min, valor - 1))} disabled={valor <= min} aria-label={`Menos ${texto.toLowerCase()}`}>
+          <Minus size={14} aria-hidden="true" />
+        </button>
+        <input
+          id={id}
+          type="number"
+          min={min}
+          max={max === Infinity ? undefined : max}
+          value={valor}
+          onChange={(e) => onCambio(e.target.value)}
+          className="w-full min-w-0 text-center text-sm font-medium text-gray-800 border-x border-linea focus:outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none"
+        />
+        <button type="button" className={boton} onClick={() => onCambio(Math.min(max, valor + 1))} disabled={valor >= max} aria-label={`Más ${texto.toLowerCase()}`}>
+          <Plus size={14} aria-hidden="true" />
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function CampoDinero({ id, etiqueta: texto, valor, onCambio }) {
+  return (
+    <div>
+      <label htmlFor={id} className={etiqueta}>
+        {texto}
+      </label>
+      <div className="relative">
+        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-gray-400" aria-hidden="true">$</span>
+        <input
+          id={id}
+          type="number"
+          inputMode="decimal"
+          min="0"
+          step="0.01"
+          placeholder="0.00"
+          value={valor || ""}
+          onChange={(e) => onCambio(e.target.value)}
+          className={`${campo} pl-7`}
+        />
+      </div>
+    </div>
+  );
+}
 
 // Nueva (/nueva) y edición (/cotizaciones/:folio/editar) usan este formulario.
 // Al editar una cotización vencida se guarda como una nueva con otro folio.
@@ -203,705 +258,384 @@ export default function FormularioCotizacion() {
       </div>
     );
 
+  const limpiarCliente = () => {
+    setBusquedaCliente("");
+    setMostrarLista(false);
+    setClienteSeleccionado("");
+    setCliente((p) => ({ ...p, atencion: "", contacto: "", email: "" }));
+  };
+
+  const totales = opciones.map((op) => calcularTotalesOpcion(op.servicios));
+  const textoGuardar = guardando
+    ? "Guardando..."
+    : !editando
+      ? "Guardar cotización"
+      : esVencida
+        ? "Generar nueva cotización"
+        : "Guardar cambios";
+
   return (
     <>
-      <div className="max-w-3xl mx-auto flex flex-col gap-6">
+      <div className="flex flex-col gap-6">
         {/* Título */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-2xl font-bold text-primary-600 tracking-tight">
-              {!editando
-                ? "Nueva cotización"
-                : esVencida
-                  ? "🔄 Renovar cotización"
-                  : "✏️ Editar cotización"}
-            </h2>
-            <p className="text-xs text-gray-400 font-mono mt-0.5">
-              {!editando ? (
-                <>
-                  Folio:{" "}
-                  <span className="text-primary-600 font-semibold">se asigna al guardar</span>
-                </>
-              ) : esVencida ? (
-                `Nueva desde: ${folioParam}`
-              ) : (
-                `Folio: ${folioParam}`
-              )}
-            </p>
-          </div>
-          <div className="flex items-center gap-2">
-            {esVencida && (
-              <span className="text-xs font-semibold px-3 py-1.5 rounded-xl border bg-red-50 text-red-600 border-red-200 flex items-center gap-1.5">
-                ⚠️ Vencida — nuevo folio
-              </span>
+        <div>
+          <h2 className="text-2xl font-semibold tracking-tight text-primary-800">
+            {!editando ? "Nueva cotización" : esVencida ? "Renovar cotización" : "Editar cotización"}
+          </h2>
+          <p className="text-sm text-gray-500 mt-0.5">
+            {!editando ? (
+              "El folio se asigna al guardar"
+            ) : (
+              <>
+                {esVencida ? "A partir de " : "Folio "}
+                <span className="font-mono">{folioParam}</span>
+              </>
             )}
-            <span
-              className="text-xs font-semibold px-3 py-1.5 rounded-xl border"
-              style={{
-                background: "rgba(255,215,0,0.1)",
-                borderColor: "rgba(255,215,0,0.3)",
-                color: "#92700a",
-              }}
-            >
-              📅 {fechaHoy()}
-            </span>
-          </div>
+          </p>
         </div>
 
-        {/* Sucursal */}
-        {puedeElegirSucursal ? (
-          <div
-            className="bg-white rounded-2xl border border-gray-100 overflow-hidden"
-            style={{ boxShadow: "0 1px 3px rgba(27,58,107,0.06)" }}
-          >
-            <div
-              className="px-6 py-4 border-b border-white/10 flex items-center gap-3"
-              style={{
-                background: "linear-gradient(135deg, #1B3A6B 0%, #0F2347 100%)",
-              }}
-            >
-              <span className="text-lg">🏢</span>
-              <h2 className="text-xs font-bold text-amber-300 uppercase tracking-widest">
-                Sucursal
-              </h2>
-            </div>
-            <div className="p-5 grid grid-cols-1 lg:grid-cols-3 gap-3">
-              {SUCURSALES.map((s) => (
-                <button
-                  key={s.id}
-                  type="button"
-                  onClick={() => setSucursal(s)}
-                  className={`flex items-center gap-3 px-4 py-3 rounded-xl border-2 transition-all duration-200 hover:scale-105 active:scale-95 text-left ${
-                    sucursal?.id === s.id
-                      ? "border-primary-600 bg-primary-50"
-                      : "border-gray-200 hover:border-primary-300"
-                  }`}
-                >
-                  <span className="text-xl flex-shrink-0">
-                    {s.id === "matriz"
-                      ? "🏙️"
-                      : s.id === "guaymas"
-                        ? "⚓"
-                        : "🌵"}
-                  </span>
-                  <div>
-                    <p
-                      className={`text-xs font-bold ${sucursal?.id === s.id ? "text-primary-600" : "text-gray-700"}`}
-                    >
-                      {s.tipo}
-                    </p>
-                    <p className="text-xs text-gray-400">{s.ciudad}</p>
-                  </div>
-                  {sucursal?.id === s.id && (
-                    <span className="ml-auto text-primary-600 font-bold">
-                      ✓
-                    </span>
-                  )}
-                </button>
-              ))}
-            </div>
-          </div>
-        ) : (
-          <div
-            className="flex items-center gap-4 rounded-2xl px-5 py-4 border"
-            style={{
-              background: "linear-gradient(135deg, #EEF2FF, #DBEAFE)",
-              borderColor: "rgba(27,58,107,0.15)",
-              boxShadow: "0 1px 3px rgba(27,58,107,0.06)",
-            }}
-          >
-            <div
-              className="w-10 h-10 rounded-xl flex items-center justify-center text-xl flex-shrink-0"
-              style={{
-                background: "linear-gradient(135deg, #1B3A6B, #0F2347)",
-              }}
-            >
-              🏢
-            </div>
-            <div>
-              <p className="text-sm font-bold text-primary-600">
-                {sucursal?.tipo}
-              </p>
-              <p className="text-xs text-gray-500 mt-0.5">{sucursal?.ciudad}</p>
-            </div>
+        {esVencida && (
+          <div className="rounded-2xl bg-estado-rechazada/10 px-4 py-3 flex items-start gap-3 text-sm text-estado-rechazada" role="status">
+            <TriangleAlert size={18} className="flex-shrink-0 mt-0.5" aria-hidden="true" />
+            <p>
+              Esta cotización ya venció. Al guardar se crea una nueva con otro folio y la fecha de hoy; la original no cambia.
+            </p>
           </div>
         )}
 
-        {/* Cliente */}
-        <div
-          className="bg-white rounded-2xl border border-gray-100 overflow-hidden"
-          style={{ boxShadow: "0 1px 3px rgba(27,58,107,0.06)" }}
-        >
-          <SectionHeader title="Datos del cliente" icon="👤" />
-          <div className="p-6 flex flex-col gap-5">
-            {/* Buscador con autocomplete */}
-            <div ref={buscadorRef}>
-              <label className={label}>Buscar cliente existente</label>
-              <div className="relative">
-                <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 text-sm">
-                  🔍
-                </span>
-                <input
-                  type="text"
-                  placeholder={
-                    cargandoDB
-                      ? "⏳ Cargando clientes..."
-                      : "Escribe para buscar cliente..."
-                  }
-                  value={busquedaCliente}
-                  disabled={cargandoDB}
-                  onChange={(e) => {
-                    setBusquedaCliente(e.target.value);
-                    setMostrarLista(true);
-                  }}
-                  onFocus={() => {
-                    if (busquedaCliente) setMostrarLista(true);
-                  }}
-                  className={input + " pl-9 pr-8"}
-                />
-                {busquedaCliente && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setBusquedaCliente("");
-                      setMostrarLista(false);
-                      setClienteSeleccionado("");
-                      setCliente((p) => ({
-                        ...p,
-                        atencion: "",
-                        contacto: "",
-                        email: "",
-                      }));
-                    }}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-lg font-bold"
-                  >
-                    ×
-                  </button>
-                )}
-
-                {/* Lista desplegable */}
-                {mostrarLista && busquedaCliente && (
-                  <div
-                    className="absolute z-20 w-full mt-1 bg-white border border-gray-200 rounded-xl overflow-hidden max-h-60 overflow-y-auto"
-                    style={{ boxShadow: "0 8px 24px rgba(27,58,107,0.12)" }}
-                  >
-                    {clientesFiltrados.length > 0 ? (
-                      clientesFiltrados.map((c, i) => (
-                        <button
-                          key={i}
-                          type="button"
-                          onMouseDown={(e) => e.preventDefault()}
-                          onClick={() => {
-                            setBusquedaCliente(c.razon_social?.trim() || "");
-                            setMostrarLista(false);
-                            seleccionarCliente(c.razon_social?.trim());
-                          }}
-                          className="w-full text-left px-4 py-3 hover:bg-primary-50 transition-colors border-b border-gray-50 last:border-0"
-                        >
-                          <p className="text-sm font-semibold text-gray-800">
-                            {c.razon_social?.trim()}
-                          </p>
-                          {c.e_mail && (
-                            <p className="text-xs text-gray-400 mt-0.5 truncate">
-                              {c.e_mail}
-                            </p>
-                          )}
-                        </button>
-                      ))
-                    ) : (
-                      <div className="px-4 py-3 text-sm text-gray-400">
-                        No se encontraron clientes
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-
-              {clienteSeleccionado && (
-                <div className="flex items-center gap-2 mt-2 bg-primary-50 border border-primary-100 rounded-xl px-3 py-2">
-                  <span className="text-xs text-primary-600 font-semibold flex-1 truncate">
-                    ✓ {clienteSeleccionado}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setBusquedaCliente("");
-                      setClienteSeleccionado("");
-                      setCliente((p) => ({
-                        ...p,
-                        atencion: "",
-                        contacto: "",
-                        email: "",
-                      }));
-                    }}
-                    className="text-xs text-red-400 hover:text-red-600 font-medium whitespace-nowrap"
-                  >
-                    × Limpiar
-                  </button>
-                </div>
-              )}
-            </div>
-
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              <div>
-                <label className={label}>Atención a (negocio) *</label>
-                <input
-                  className={input + " uppercase"}
-                  placeholder="Nombre del negocio"
-                  value={cliente.atencion || ""}
-                  onChange={(e) =>
-                    setCliente((p) => ({ ...p, atencion: e.target.value }))
-                  }
-                />
-              </div>
-              <div>
-                <label className={label}>Contacto / Razón social</label>
-                <input
-                  className={input + " uppercase"}
-                  placeholder="Razón social"
-                  value={cliente.contacto || ""}
-                  onChange={(e) =>
-                    setCliente((p) => ({ ...p, contacto: e.target.value }))
-                  }
-                />
-              </div>
-              {(!editando || esVencida) && (
-                <div>
-                  <label className={label}>Fecha de cotización</label>
-                  <input
-                    className={input}
-                    value={fechaHoy()}
-                    readOnly
-                    style={{ background: "#F8FAFF", color: "#6B7280" }}
-                  />
-                </div>
-              )}
-              <div>
-                <label className={label}>Vigencia</label>
-                <select
-                  className={input}
-                  value={cliente.vigencia}
-                  onChange={(e) =>
-                    setCliente((p) => ({ ...p, vigencia: e.target.value }))
-                  }
-                >
-                  {VIGENCIAS.map((v) => (
-                    <option key={v}>{v}</option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className={label}>Facturación</label>
-                <select
-                  className={input}
-                  value={cliente.pago || "MES SERVIDO"}
-                  onChange={(e) =>
-                    setCliente((p) => ({ ...p, pago: e.target.value }))
-                  }
-                >
-                  {PAGOS.map((p) => (
-                    <option key={p}>{p}</option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className={label}>Correo del cliente</label>
-                <input
-                  className={input}
-                  type="text"
-                  placeholder="correo1@mail.com; correo2@mail.com"
-                  value={cliente.email || ""}
-                  onChange={(e) =>
-                    setCliente((p) => ({ ...p, email: e.target.value }))
-                  }
-                />
-              </div>
-              <div className="col-span-1 lg:col-span-2">
-                <label className={label}>Notas adicionales</label>
-                <textarea
-                  className={input}
-                  rows={3}
-                  placeholder="Observaciones, accesos especiales, horarios..."
-                  value={cliente.notas || ""}
-                  onChange={(e) =>
-                    setCliente((p) => ({ ...p, notas: e.target.value }))
-                  }
-                />
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Opciones de servicio */}
-        <div
-          className="bg-white rounded-2xl border border-gray-100 overflow-hidden"
-          style={{ boxShadow: "0 1px 3px rgba(27,58,107,0.06)" }}
-        >
-          <SectionHeader title="Conceptos de servicio" icon="📦" />
-          <div className="p-6 flex flex-col gap-5">
-            {opciones.map((op, opIdx) => {
-              const { subtotal, iva, total } = calcularTotalesOpcion(
-                op.servicios,
-              );
-              return (
-                <div
-                  key={op.id}
-                  className="border border-gray-200 rounded-2xl overflow-hidden"
-                  style={{ boxShadow: "0 1px 3px rgba(27,58,107,0.04)" }}
-                >
-                  <div
-                    className="flex items-center justify-between px-5 py-3.5 border-b border-gray-100"
-                    style={{
-                      background: "linear-gradient(135deg, #F8FAFF, #EEF2FF)",
-                    }}
-                  >
-                    <div className="flex items-center gap-3">
-                      <div
-                        className="w-7 h-7 rounded-xl flex items-center justify-center text-white text-xs font-bold"
-                        style={{
-                          background:
-                            "linear-gradient(135deg, #1B3A6B, #0F2347)",
-                        }}
+        <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_19rem] items-start">
+          <div className="flex flex-col gap-6 min-w-0">
+            {/* Sucursal */}
+            {puedeElegirSucursal && (
+              <Seccion icono={Building2} titulo="Sucursal">
+                <div className="p-4 grid gap-2 sm:grid-cols-3" role="radiogroup" aria-label="Sucursal">
+                  {SUCURSALES.map((s) => {
+                    const activa = sucursal?.id === s.id;
+                    return (
+                      <button
+                        key={s.id}
+                        type="button"
+                        role="radio"
+                        aria-checked={activa}
+                        onClick={() => setSucursal(s)}
+                        className={`flex items-center gap-3 px-3.5 py-3 rounded-xl border text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-600 ${
+                          activa ? "border-primary-600 bg-primary-50" : "border-linea hover:border-primary-600/40"
+                        }`}
                       >
-                        {opIdx + 1}
-                      </div>
-                      <span className="text-sm font-bold text-primary-600 tracking-wide">
-                        OPCIÓN {opIdx + 1}
-                      </span>
-                    </div>
-                    {opciones.length > 1 && (
+                        <MapPin size={18} className={activa ? "text-primary-600" : "text-gray-400"} aria-hidden="true" />
+                        <span className="min-w-0">
+                          <span className={`block text-sm font-medium ${activa ? "text-primary-800" : "text-gray-700"}`}>
+                            {SUCURSAL_CORTA[s.id]}
+                          </span>
+                        </span>
+                        {activa && <Check size={16} className="ml-auto text-primary-600" aria-hidden="true" />}
+                      </button>
+                    );
+                  })}
+                </div>
+              </Seccion>
+            )}
+
+            {/* Cliente */}
+            <Seccion icono={UserRound} titulo="Cliente">
+              <div className="p-4 lg:p-6 flex flex-col gap-4">
+                <div ref={buscadorRef}>
+                  <label htmlFor="buscar-cliente" className={etiqueta}>
+                    Buscar en el catálogo de clientes
+                  </label>
+                  <div className="relative">
+                    <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" aria-hidden="true" />
+                    <input
+                      id="buscar-cliente"
+                      type="text"
+                      autoComplete="off"
+                      placeholder={cargandoDB ? "Cargando clientes..." : "Escribe la razón social"}
+                      value={busquedaCliente}
+                      disabled={cargandoDB}
+                      onChange={(e) => {
+                        setBusquedaCliente(e.target.value);
+                        setMostrarLista(true);
+                      }}
+                      onFocus={() => busquedaCliente && setMostrarLista(true)}
+                      className={`${campo} pl-9 pr-9`}
+                    />
+                    {busquedaCliente && (
                       <button
                         type="button"
-                        onClick={() => quitarOpcion(op.id)}
-                        className="text-xs text-red-400 hover:text-red-600 font-medium px-3 py-1 rounded-lg hover:bg-red-50 transition-colors"
+                        onClick={limpiarCliente}
+                        aria-label="Quitar cliente"
+                        className="absolute right-2 top-1/2 -translate-y-1/2 w-7 h-7 rounded-lg flex items-center justify-center text-gray-400 hover:text-gray-700 hover:bg-gray-100"
                       >
-                        × Eliminar opción
+                        <X size={16} aria-hidden="true" />
                       </button>
                     )}
-                  </div>
 
-                  <div className="divide-y divide-gray-50">
-                    {op.servicios.map((srv, srvIdx) => {
-                      const lineTotal = calcularServicio(srv);
-                      return (
-                        <div key={srv.id} className="p-5">
-                          <div className="flex items-center justify-between mb-4">
-                            <div className="flex items-center gap-2">
-                              <div className="w-5 h-5 rounded-lg bg-gray-100 flex items-center justify-center text-xs font-bold text-gray-500">
-                                {srvIdx + 1}
-                              </div>
-                              <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">
-                                Servicio {srvIdx + 1}
-                              </span>
-                            </div>
-                            {op.servicios.length > 1 && (
-                              <button
-                                type="button"
-                                onClick={() => quitarServicio(op.id, srv.id)}
-                                className="text-xs text-red-400 hover:text-red-600 font-medium px-2 py-1 rounded-lg hover:bg-red-50 transition-colors"
-                              >
-                                × Quitar
-                              </button>
-                            )}
-                          </div>
-
-                          <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-                            <div className="col-span-1 lg:col-span-2">
-                              <label className={label}>
-                                Concepto de servicio
-                              </label>
-                              <select
-                                className={inputSm}
-                                value={srv.servicioId || srv.nombre || ""}
-                                onChange={(e) =>
-                                  alSeleccionarServicio(
-                                    op.id,
-                                    srv.id,
-                                    e.target.value,
-                                  )
-                                }
-                                disabled={cargandoDB}
-                              >
-                                <option value="">
-                                  {cargandoDB
-                                    ? "Cargando..."
-                                    : "— Seleccionar servicio —"}
-                                </option>
-                                {catalogoServicios.map((s, i) => (
-                                  <option key={i} value={s.nombre}>
-                                    {s.nombre}
-                                  </option>
-                                ))}
-                              </select>
-                            </div>
-                            <div>
-                              <label className={label}>
-                                Precio unitario ($)
-                              </label>
-                              <input
-                                className={inputSm}
-                                type="number"
-                                min="0"
-                                step="0.01"
-                                placeholder="0.00"
-                                value={srv.precioUnitario || ""}
-                                onChange={(e) =>
-                                  cambiarCampo(
-                                    op.id,
-                                    srv.id,
-                                    "precioUnitario",
-                                    e.target.value,
-                                  )
-                                }
-                              />
-                            </div>
-                            <div>
-                              <label className={label}>N° contenedores</label>
-                              <div className="flex items-center gap-1.5">
-                                <button
-                                  type="button"
-                                  className={btnCounter}
-                                  onClick={() =>
-                                    cambiarCampo(
-                                      op.id,
-                                      srv.id,
-                                      "numContenedores",
-                                      Math.max(1, srv.numContenedores - 1),
-                                    )
-                                  }
-                                >
-                                  −
-                                </button>
-                                <input
-                                  className={
-                                    inputSm + " text-center font-semibold"
-                                  }
-                                  type="number"
-                                  min="1"
-                                  value={srv.numContenedores}
-                                  onChange={(e) =>
-                                    cambiarCampo(
-                                      op.id,
-                                      srv.id,
-                                      "numContenedores",
-                                      e.target.value,
-                                    )
-                                  }
-                                />
-                                <button
-                                  type="button"
-                                  className={btnCounter}
-                                  onClick={() =>
-                                    cambiarCampo(
-                                      op.id,
-                                      srv.id,
-                                      "numContenedores",
-                                      srv.numContenedores + 1,
-                                    )
-                                  }
-                                >
-                                  +
-                                </button>
-                              </div>
-                            </div>
-                            <div>
-                              <label className={label}>
-                                Precio por día ($)
-                              </label>
-                              <input
-                                className={inputSm}
-                                type="number"
-                                min="0"
-                                step="0.01"
-                                placeholder="0.00"
-                                value={srv.precioDia || ""}
-                                onChange={(e) =>
-                                  cambiarCampo(
-                                    op.id,
-                                    srv.id,
-                                    "precioDia",
-                                    e.target.value,
-                                  )
-                                }
-                              />
-                            </div>
-                            <div>
-                              <label className={label}>
-                                Visitas por semana
-                              </label>
-                              <div className="flex items-center gap-1.5">
-                                <button
-                                  type="button"
-                                  className={btnCounter}
-                                  onClick={() =>
-                                    cambiarCampo(
-                                      op.id,
-                                      srv.id,
-                                      "diasSemana",
-                                      Math.max(1, srv.diasSemana - 1),
-                                    )
-                                  }
-                                >
-                                  −
-                                </button>
-                                <input
-                                  className={
-                                    inputSm + " text-center font-semibold"
-                                  }
-                                  type="number"
-                                  min="1"
-                                  max="7"
-                                  value={srv.diasSemana}
-                                  onChange={(e) =>
-                                    cambiarCampo(
-                                      op.id,
-                                      srv.id,
-                                      "diasSemana",
-                                      e.target.value,
-                                    )
-                                  }
-                                />
-                                <button
-                                  type="button"
-                                  className={btnCounter}
-                                  onClick={() =>
-                                    cambiarCampo(
-                                      op.id,
-                                      srv.id,
-                                      "diasSemana",
-                                      Math.min(7, srv.diasSemana + 1),
-                                    )
-                                  }
-                                >
-                                  +
-                                </button>
-                              </div>
-                            </div>
-                            <div className="col-span-1 lg:col-span-2">
-                              <div className="flex items-center justify-end gap-2 bg-gray-50 rounded-xl px-4 py-2.5 border border-gray-100">
-                                <span className="text-xs text-gray-400 font-medium">
-                                  Subtotal línea:
-                                </span>
-                                <span className="text-sm font-bold text-primary-600 font-mono">
-                                  $
-                                  {lineTotal.toLocaleString("es-MX", {
-                                    minimumFractionDigits: 2,
-                                  })}
-                                </span>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-
-                  <div className="px-5 pb-4">
-                    <button
-                      type="button"
-                      onClick={() => agregarServicio(op.id)}
-                      className="w-full border-2 border-dashed border-gray-200 hover:border-primary-600 text-gray-400 hover:text-primary-600 text-xs font-semibold py-2.5 rounded-xl transition-all duration-200 hover:bg-primary-50"
-                    >
-                      + Agregar servicio
-                    </button>
-                  </div>
-
-                  <div className="grid grid-cols-3 divide-x divide-gray-100 border-t border-gray-100">
-                    {[
-                      { l: "Subtotal", v: subtotal },
-                      { l: "IVA 16%", v: iva },
-                      { l: "Neto mensual", v: total, highlight: true },
-                    ].map(({ l, v, highlight }) => (
-                      <div
-                        key={l}
-                        className="text-center py-4 px-2"
-                        style={
-                          highlight
-                            ? {
-                                background:
-                                  "linear-gradient(135deg, #EEF2FF, #DBEAFE)",
-                              }
-                            : {}
-                        }
-                      >
-                        <p className="text-xs text-gray-400 font-medium mb-1">
-                          {l}
-                        </p>
-                        <p
-                          className={`text-sm font-bold font-mono ${highlight ? "text-primary-600" : "text-gray-700"}`}
-                        >
-                          $
-                          {(v || 0).toLocaleString("es-MX", {
-                            minimumFractionDigits: 2,
-                          })}
-                        </p>
+                    {mostrarLista && busquedaCliente && (
+                      <div className="absolute z-20 w-full mt-1 bg-white border border-linea rounded-xl overflow-hidden max-h-64 overflow-y-auto shadow-medium">
+                        {clientesFiltrados.length > 0 ? (
+                          clientesFiltrados.map((c, i) => (
+                            <button
+                              key={i}
+                              type="button"
+                              onMouseDown={(e) => e.preventDefault()}
+                              onClick={() => {
+                                setBusquedaCliente(c.razon_social?.trim() || "");
+                                setMostrarLista(false);
+                                seleccionarCliente(c.razon_social?.trim());
+                              }}
+                              className="w-full text-left px-4 py-2.5 hover:bg-primary-50 border-b border-linea last:border-0"
+                            >
+                              <span className="block text-sm font-medium text-gray-800">{c.razon_social?.trim()}</span>
+                              {c.e_mail && <span className="block text-xs text-gray-500 truncate">{c.e_mail}</span>}
+                            </button>
+                          ))
+                        ) : (
+                          <p className="px-4 py-3 text-sm text-gray-500">
+                            No está en el catálogo. Captura los datos abajo.
+                          </p>
+                        )}
                       </div>
-                    ))}
+                    )}
+                  </div>
+                  {clienteSeleccionado && (
+                    <p className="text-xs text-estado-aprobada mt-1.5 flex items-center gap-1">
+                      <Check size={14} aria-hidden="true" /> Datos tomados del catálogo
+                    </p>
+                  )}
+                </div>
+
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div>
+                    <label htmlFor="atencion" className={etiqueta}>
+                      Atención a (negocio)
+                    </label>
+                    <input
+                      id="atencion"
+                      className={`${campo} uppercase`}
+                      value={cliente.atencion || ""}
+                      onChange={(e) => setCliente((p) => ({ ...p, atencion: e.target.value }))}
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="contacto" className={etiqueta}>
+                      Razón social
+                    </label>
+                    <input
+                      id="contacto"
+                      className={`${campo} uppercase`}
+                      value={cliente.contacto || ""}
+                      onChange={(e) => setCliente((p) => ({ ...p, contacto: e.target.value }))}
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="vigencia" className={etiqueta}>
+                      Vigencia
+                    </label>
+                    <select
+                      id="vigencia"
+                      className={campo}
+                      value={cliente.vigencia}
+                      onChange={(e) => setCliente((p) => ({ ...p, vigencia: e.target.value }))}
+                    >
+                      {VIGENCIAS.map((v) => (
+                        <option key={v}>{v}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label htmlFor="pago" className={etiqueta}>
+                      Facturación
+                    </label>
+                    <select
+                      id="pago"
+                      className={campo}
+                      value={cliente.pago || "MES SERVIDO"}
+                      onChange={(e) => setCliente((p) => ({ ...p, pago: e.target.value }))}
+                    >
+                      {PAGOS.map((p) => (
+                        <option key={p}>{p}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="sm:col-span-2">
+                    <label htmlFor="email-cliente" className={etiqueta}>
+                      Correo del cliente
+                    </label>
+                    <input
+                      id="email-cliente"
+                      className={campo}
+                      type="text"
+                      inputMode="email"
+                      placeholder="compras@cliente.com"
+                      value={cliente.email || ""}
+                      onChange={(e) => setCliente((p) => ({ ...p, email: e.target.value }))}
+                    />
+                  </div>
+                  <div className="sm:col-span-2">
+                    <label htmlFor="notas" className={etiqueta}>
+                      Observaciones (aparecen en el PDF)
+                    </label>
+                    <textarea
+                      id="notas"
+                      className={`${campo} resize-y`}
+                      rows={2}
+                      placeholder="Accesos, horarios, indicaciones especiales"
+                      value={cliente.notas || ""}
+                      onChange={(e) => setCliente((p) => ({ ...p, notas: e.target.value }))}
+                    />
                   </div>
                 </div>
-              );
-            })}
+              </div>
+            </Seccion>
 
-            <button
-              type="button"
-              onClick={agregarOpcion}
-              className="w-full border-2 border-dashed border-gray-200 hover:border-primary-600 text-gray-400 hover:text-primary-600 text-sm font-semibold py-4 rounded-2xl transition-all duration-200 hover:bg-primary-50"
+            {/* Opciones de servicio */}
+            <Seccion
+              icono={Package}
+              titulo="Servicios"
+              descripcion="Cada opción es una propuesta distinta para el cliente"
             >
-              + Agregar opción
-            </button>
-          </div>
-        </div>
+              <div className="p-4 lg:p-6 flex flex-col gap-5">
+                {opciones.map((op, opIdx) => (
+                  <div key={op.id} className="rounded-xl border border-linea">
+                    <div className="flex items-center justify-between gap-3 px-4 py-2.5 bg-gray-50 border-b border-linea rounded-t-xl">
+                      <p className="text-sm font-semibold text-primary-800">Opción {opIdx + 1}</p>
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm text-gray-600">${formatMXN(totales[opIdx].total)} con IVA</span>
+                        {opciones.length > 1 && (
+                          <BotonIcono icono={Trash2} etiqueta={`Eliminar opción ${opIdx + 1}`} peligro onClick={() => quitarOpcion(op.id)} />
+                        )}
+                      </div>
+                    </div>
 
-        {/* Bases */}
-        <div
-          className="bg-white rounded-2xl border border-gray-100 overflow-hidden"
-          style={{ boxShadow: "0 1px 3px rgba(27,58,107,0.06)" }}
-        >
-          <SectionHeader title="Bases de la cotización" icon="📄" />
-          <div className="p-6">
-            <BasesEditor
-              basesExtra={basesExtra}
-              setBasesExtra={setBasesExtra}
-            />
-          </div>
-        </div>
+                    <ul className="divide-y divide-linea">
+                      {op.servicios.map((srv, srvIdx) => {
+                        const id = `${op.id}-${srv.id}`;
+                        return (
+                          <li key={srv.id} className="p-4 flex flex-col gap-3">
+                            <div className="flex items-end gap-2">
+                              <div className="flex-1 min-w-0">
+                                <label htmlFor={`concepto-${id}`} className={etiqueta}>
+                                  Servicio {op.servicios.length > 1 ? srvIdx + 1 : ""}
+                                </label>
+                                <select
+                                  id={`concepto-${id}`}
+                                  className={campo}
+                                  value={srv.servicioId || srv.nombre || ""}
+                                  onChange={(e) => alSeleccionarServicio(op.id, srv.id, e.target.value)}
+                                  disabled={cargandoDB}
+                                >
+                                  <option value="">{cargandoDB ? "Cargando..." : "Selecciona un servicio"}</option>
+                                  {catalogoServicios.map((s, i) => (
+                                    <option key={i} value={s.nombre}>
+                                      {s.nombre}
+                                    </option>
+                                  ))}
+                                </select>
+                              </div>
+                              {op.servicios.length > 1 && (
+                                <div className="pb-1">
+                                  <BotonIcono icono={Trash2} etiqueta="Quitar servicio" peligro onClick={() => quitarServicio(op.id, srv.id)} />
+                                </div>
+                              )}
+                            </div>
+                            <div className="grid gap-3 grid-cols-2 xl:grid-cols-4">
+                              <CampoDinero
+                                id={`precio-${id}`}
+                                etiqueta="Precio por contenedor"
+                                valor={srv.precioUnitario}
+                                onCambio={(v) => cambiarCampo(op.id, srv.id, "precioUnitario", v)}
+                              />
+                              <Contador
+                                id={`contenedores-${id}`}
+                                etiqueta="Contenedores"
+                                valor={srv.numContenedores}
+                                min={1}
+                                onCambio={(v) => cambiarCampo(op.id, srv.id, "numContenedores", v)}
+                              />
+                              <CampoDinero
+                                id={`dia-${id}`}
+                                etiqueta="Precio por visita"
+                                valor={srv.precioDia}
+                                onCambio={(v) => cambiarCampo(op.id, srv.id, "precioDia", v)}
+                              />
+                              <Contador
+                                id={`visitas-${id}`}
+                                etiqueta="Visitas por semana"
+                                valor={srv.diasSemana}
+                                min={1}
+                                max={7}
+                                onCambio={(v) => cambiarCampo(op.id, srv.id, "diasSemana", v)}
+                              />
+                            </div>
+                            <p className="text-sm text-gray-600 text-right">
+                              Subtotal del servicio{" "}
+                              <span className="font-semibold text-gray-800">${formatMXN(calcularServicio(srv))}</span>
+                            </p>
+                          </li>
+                        );
+                      })}
+                    </ul>
 
-        {/* Botones */}
-        <div className="flex gap-3">
-          {editando && (
-            <button
-              type="button"
-              onClick={() => navigate("/cotizaciones")}
-              className="flex-1 border border-gray-200 text-gray-600 font-semibold text-sm py-4 rounded-2xl hover:bg-gray-50 transition-all duration-200 hover:scale-105 active:scale-95"
-            >
-              ← Cancelar
-            </button>
-          )}
-          <button
-            type="button"
-            onClick={guardar}
-            disabled={guardando}
-            className="flex-1 text-white font-bold text-sm py-4 rounded-2xl transition-all duration-200 disabled:opacity-50 flex items-center justify-center gap-2 hover:scale-105 active:scale-95"
-            style={{
-              background: guardando
-                ? "#6B7280"
-                : "linear-gradient(135deg, #1B3A6B 0%, #0F2347 100%)",
-              boxShadow: guardando ? "none" : "0 4px 16px rgba(27,58,107,0.3)",
-            }}
-          >
-            {guardando ? (
-              <>
-                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                Guardando...
-              </>
-            ) : !editando ? (
-              "💾 Guardar cotización"
-            ) : esVencida ? (
-              "📋 Generar nueva cotización"
-            ) : (
-              "💾 Guardar cambios"
-            )}
-          </button>
+                    <div className="px-4 pb-4">
+                      <Boton variante="fantasma" tamaño="sm" icono={Plus} onClick={() => agregarServicio(op.id)}>
+                        Agregar servicio a la opción {opIdx + 1}
+                      </Boton>
+                    </div>
+                  </div>
+                ))}
+
+                <Boton variante="secundario" icono={Plus} onClick={agregarOpcion} className="w-full border-dashed">
+                  Agregar otra opción
+                </Boton>
+              </div>
+            </Seccion>
+
+            {/* Bases */}
+            <Seccion icono={ScrollText} titulo="Bases de la cotización">
+              <div className="p-4 lg:p-6">
+                <BasesEditor basesExtra={basesExtra} setBasesExtra={setBasesExtra} />
+              </div>
+            </Seccion>
+          </div>
+
+          {/* Resumen fijo */}
+          <aside className="lg:sticky lg:top-24 flex flex-col gap-4">
+            <Seccion icono={Receipt} titulo="Resumen">
+              <dl className="px-4 lg:px-5 py-4 grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 text-sm border-b border-linea">
+                <dt className="text-gray-500">Sucursal</dt>
+                <dd className="text-gray-800 text-right">{SUCURSAL_CORTA[sucursal?.id]}</dd>
+                <dt className="text-gray-500">Fecha</dt>
+                <dd className="text-gray-800 text-right">{editando && !esVencida ? "La original" : fechaHoy().toLowerCase()}</dd>
+                <dt className="text-gray-500">Vigencia</dt>
+                <dd className="text-gray-800 text-right">{cliente.vigencia?.toLowerCase()}</dd>
+              </dl>
+              <ul className="divide-y divide-linea">
+                {totales.map((t, i) => (
+                  <li key={i} className="px-4 lg:px-5 py-3 text-sm">
+                    <p className="font-medium text-primary-800 mb-1">Opción {i + 1}</p>
+                    <div className="grid grid-cols-[1fr_auto] gap-y-0.5 text-gray-600">
+                      <span>Subtotal</span>
+                      <span className="text-right">${formatMXN(t.subtotal)}</span>
+                      <span>IVA 16%</span>
+                      <span className="text-right">${formatMXN(t.iva)}</span>
+                      <span className="font-semibold text-gray-800">Neto mensual</span>
+                      <span className="text-right font-semibold text-gray-800">${formatMXN(t.total)}</span>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+              <div className="p-4 lg:p-5 border-t border-linea flex flex-col gap-2">
+                <Boton icono={Save} onClick={guardar} disabled={guardando} className="w-full">
+                  {textoGuardar}
+                </Boton>
+                {editando && (
+                  <Boton variante="secundario" onClick={() => navigate("/cotizaciones")} className="w-full">
+                    Cancelar
+                  </Boton>
+                )}
+              </div>
+            </Seccion>
+          </aside>
         </div>
       </div>
 

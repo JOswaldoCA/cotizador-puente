@@ -1,399 +1,269 @@
 import { useState } from "react";
 import { Outlet, NavLink, useNavigate } from "react-router-dom";
+import {
+  Bell,
+  BellOff,
+  FilePlus2,
+  Files,
+  LayoutDashboard,
+  LogOut,
+  Menu,
+  Plus,
+  ScrollText,
+  Users,
+  X,
+} from "lucide-react";
 import { useAuth } from "../hooks/useAuth";
 import { useNotificaciones } from "../hooks/useNotificaciones";
 import logo from "../assets/logoPA.png";
 
-// ← FUERA de todo, al inicio del archivo
-const LAYOUT_TS = new Date().getTime();
+const SUCURSAL_LABEL = {
+  matriz: "Matriz, Hermosillo",
+  guaymas: "Sucursal Guaymas",
+  obregon: "Sucursal Obregón",
+};
 
-function tiempoDesde(fecha) {
+function tiempoDesde(fecha, ahora) {
   if (!fecha) return "";
-  const diff = LAYOUT_TS - new Date(fecha).getTime();
+  const diff = ahora - new Date(fecha).getTime();
   const min = Math.floor(diff / 60000);
   const hrs = Math.floor(diff / 3600000);
   const dias = Math.floor(diff / 86400000);
-  if (min < 2) return "ahora";
-  if (min < 60) return `${min}m`;
-  if (hrs < 24) return `${hrs}h`;
-  return `${dias}d`;
+  if (min < 2) return "Ahora";
+  if (min < 60) return `Hace ${min} min`;
+  if (hrs < 24) return `Hace ${hrs} h`;
+  return `Hace ${dias} d`;
 }
 
-function SidebarContent({ perfil, sucursalLabel, navItem, logout }) {
+const Avatar = ({ nombre, className = "w-9 h-9" }) => (
+  <div
+    className={`${className} rounded-xl bg-accent-400 text-primary-800 flex items-center justify-center text-sm font-semibold flex-shrink-0`}
+    aria-hidden="true"
+  >
+    {nombre?.charAt(0)?.toUpperCase() || "U"}
+  </div>
+);
+
+function ItemMenu({ to, icono: Icono, children, onClick }) {
+  return (
+    <NavLink
+      to={to}
+      end={to === "/"}
+      onClick={onClick}
+      className={({ isActive }) =>
+        `flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-400 ${
+          isActive ? "bg-white text-primary-800" : "text-white/70 hover:text-white hover:bg-white/10"
+        }`
+      }
+    >
+      <Icono size={18} strokeWidth={2} aria-hidden="true" />
+      {children}
+    </NavLink>
+  );
+}
+
+function SidebarContent({ perfil, logout, cerrarMenu }) {
   return (
     <>
-      <div className="px-5 pt-6 pb-5 border-b border-white/10">
-        <img
-          src={logo}
-          alt="Puente Ambiental"
-          className="h-14 w-full object-contain object-left"
-        />
-        <div className="flex items-center gap-2 mt-3">
-          <div className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse"></div>
-          <p className="text-blue-300/70 text-xs">Sistema de cotizaciones</p>
-        </div>
+      <div className="px-5 pt-6 pb-5">
+        <img src={logo} alt="Puente Ambiental" className="h-12 w-full object-contain object-left" />
+        <p className="text-white/50 text-xs mt-3">Sistema de cotizaciones</p>
       </div>
 
-      <nav className="flex flex-col gap-1 p-4 flex-1">
-        <p className="text-blue-400/50 text-xs font-semibold uppercase tracking-widest px-4 mb-2">
-          Menú
-        </p>
-        {navItem("/", "📊", "Dashboard")}
-        {navItem("/nueva", "📝", "Nueva cotización")}
-        {navItem("/cotizaciones", "📋", "Historial")}
+      <nav className="flex flex-col gap-1 px-3 flex-1" aria-label="Principal">
+        <ItemMenu to="/" icono={LayoutDashboard} onClick={cerrarMenu}>Dashboard</ItemMenu>
+        <ItemMenu to="/nueva" icono={FilePlus2} onClick={cerrarMenu}>Nueva cotización</ItemMenu>
+        <ItemMenu to="/cotizaciones" icono={Files} onClick={cerrarMenu}>Cotizaciones</ItemMenu>
 
-        {perfil?.rol === "admin" && ( // ← ya está así, no cambia
+        {perfil?.rol === "admin" && (
           <>
-            <p className="text-blue-400/50 text-xs font-semibold uppercase tracking-widest px-4 mb-2 mt-4">
-              Administración
-            </p>
-            {navItem("/admin/usuarios", "👥", "Usuarios")}
-            {navItem("/admin/bitacora", "📋", "Bitácora")}
+            <p className="text-white/40 text-xs font-medium px-3 mt-5 mb-1">Administración</p>
+            <ItemMenu to="/admin/usuarios" icono={Users} onClick={cerrarMenu}>Usuarios</ItemMenu>
+            <ItemMenu to="/admin/bitacora" icono={ScrollText} onClick={cerrarMenu}>Bitácora</ItemMenu>
           </>
         )}
       </nav>
 
-      <div className="p-4 border-t border-white/10">
-        <div className="flex items-center gap-3 mb-3 px-1">
-          <div
-            className="w-9 h-9 rounded-xl flex items-center justify-center text-primary-600 text-sm font-bold flex-shrink-0"
-            style={{ background: "linear-gradient(135deg, #FFE566, #FFD700)" }}
-          >
-            {perfil?.nombre?.charAt(0)?.toUpperCase() || "U"}
-          </div>
-          <div className="overflow-hidden flex-1">
-            <p className="text-white text-xs font-semibold truncate">
-              {perfil?.nombre || "Usuario"}
-            </p>
-            <p className="text-blue-300/60 text-xs truncate">{sucursalLabel}</p>
-          </div>
-          {perfil?.rol === "admin" && (
-            <span className="text-xs bg-accent-400/20 text-accent-300 font-semibold px-2 py-0.5 rounded-lg border border-accent-400/30 flex-shrink-0">
-              Admin
-            </span>
-          )}
-        </div>
-        <button
-          onClick={logout}
-          className="w-full text-xs text-blue-300/70 hover:text-white border border-white/10 hover:border-white/30 rounded-xl py-2.5 transition-all duration-200 hover:bg-white/5 flex items-center justify-center gap-2"
+      <div className="p-4 border-t border-white/10 flex flex-col gap-3">
+        <NavLink
+          to="/perfil"
+          onClick={cerrarMenu}
+          className="flex items-center gap-3 rounded-xl p-1.5 -m-1.5 hover:bg-white/10 transition-colors"
         >
-          <span>↩</span> Cerrar sesión
+          <Avatar nombre={perfil?.nombre} />
+          <div className="overflow-hidden flex-1">
+            <p className="text-white text-sm font-medium truncate">{perfil?.nombre || "Usuario"}</p>
+            <p className="text-white/50 text-xs truncate">
+              {SUCURSAL_LABEL[perfil?.sucursal_id] || "Sin sucursal"}
+              {perfil?.rol === "admin" && ", admin"}
+            </p>
+          </div>
+        </NavLink>
+        <button
+          type="button"
+          onClick={logout}
+          className="w-full text-xs text-white/60 hover:text-white rounded-xl py-2 transition-colors hover:bg-white/10 flex items-center justify-center gap-2"
+        >
+          <LogOut size={14} aria-hidden="true" /> Cerrar sesión
         </button>
       </div>
     </>
   );
 }
 
-export default function Layout() {
-  const { logout, perfil } = useAuth();
-  const { notificaciones, noLeidas, marcarLeida, marcarTodasLeidas } =
-    useNotificaciones();
+function Notificaciones() {
   const navigate = useNavigate();
-  const [menuAbierto, setMenuAbierto] = useState(false);
-  const [campanaAbierta, setCampanaAbierta] = useState(false);
+  const { notificaciones, noLeidas, marcarLeida, marcarTodasLeidas } = useNotificaciones();
+  const [abierta, setAbierta] = useState(false);
+  const [ahora, setAhora] = useState(() => Date.now());
 
-  const cerrarMenu = () => setMenuAbierto(false);
-
-  const sucursalLabel =
-    {
-      matriz: "Matriz — Hermosillo",
-      guaymas: "Suc. Guaymas",
-      obregon: "Suc. Obregón",
-    }[perfil?.sucursal_id] || "Sin sucursal";
-
-  const sucursalTopbar =
-    {
-      matriz: "SUC. MATRIZ — Hermosillo, Sonora",
-      guaymas: "SUC. GUAYMAS — Guaymas, Sonora",
-      obregon: "SUC. OBREGÓN — Ciudad Obregón, Sonora",
-    }[perfil?.sucursal_id] || "";
-
-  const navItem = (to, icon, label) => (
-    <NavLink
-      to={to}
-      end={to === "/"}
-      onClick={cerrarMenu}
-      className={({ isActive }) =>
-        `flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 ${
-          isActive
-            ? "bg-white/15 text-white shadow-sm border border-white/10"
-            : "text-blue-200/80 hover:bg-white/8 hover:text-white"
-        }`
-      }
-    >
-      <span className="text-base leading-none">{icon}</span>
-      {label}
-    </NavLink>
-  );
-
-  const sidebarStyle = {
-    background:
-      "linear-gradient(180deg, #1B3A6B 0%, #0F2347 60%, #091629 100%)",
-    boxShadow: "4px 0 24px rgba(9,22,41,0.15)",
+  const alternar = () => {
+    setAhora(Date.now());
+    setAbierta((a) => !a);
   };
 
   return (
-    <div className="min-h-screen flex" style={{ background: "#F0F4F8" }}>
-      {/* SIDEBAR DESKTOP */}
-      <aside
-        className="hidden lg:flex w-64 min-h-screen flex-col flex-shrink-0 fixed left-0 top-0 bottom-0 z-20"
-        style={sidebarStyle}
+    <div className="relative">
+      <button
+        type="button"
+        onClick={alternar}
+        aria-label={noLeidas ? `Notificaciones, ${noLeidas} sin leer` : "Notificaciones"}
+        aria-expanded={abierta}
+        className="relative w-9 h-9 rounded-xl flex items-center justify-center text-primary-600 hover:bg-primary-50 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-600"
       >
-        <SidebarContent
-          perfil={perfil}
-          sucursalLabel={sucursalLabel}
-          navItem={navItem}
-          logout={logout}
-        />
+        <Bell size={18} strokeWidth={2} aria-hidden="true" />
+        {noLeidas > 0 && (
+          <span className="absolute top-1 right-1 min-w-4 h-4 px-1 rounded-full bg-estado-rechazada text-white text-[10px] font-semibold flex items-center justify-center">
+            {noLeidas > 9 ? "9+" : noLeidas}
+          </span>
+        )}
+      </button>
+
+      {abierta && (
+        <>
+          <div className="fixed inset-0 z-40" onClick={() => setAbierta(false)} />
+          <div className="absolute right-0 top-11 w-80 max-w-[calc(100vw-2rem)] bg-white rounded-2xl border border-linea overflow-hidden z-50 shadow-large">
+            <div className="px-4 py-3 flex items-center justify-between border-b border-linea">
+              <p className="text-sm font-semibold text-primary-800">
+                Notificaciones
+                {noLeidas > 0 && <span className="ml-2 text-xs font-medium text-gray-500">{noLeidas} sin leer</span>}
+              </p>
+              {noLeidas > 0 && (
+                <button
+                  type="button"
+                  onClick={marcarTodasLeidas}
+                  className="text-xs text-primary-600 hover:text-primary-800 font-medium"
+                >
+                  Marcar como leídas
+                </button>
+              )}
+            </div>
+
+            <div className="max-h-80 overflow-y-auto">
+              {notificaciones.length === 0 ? (
+                <div className="py-10 flex flex-col items-center gap-2 text-gray-400">
+                  <BellOff size={24} strokeWidth={1.5} aria-hidden="true" />
+                  <p className="text-xs">No tienes notificaciones.</p>
+                </div>
+              ) : (
+                notificaciones.map((n) => (
+                  <button
+                    type="button"
+                    key={n.id}
+                    onClick={() => {
+                      marcarLeida(n.id);
+                      setAbierta(false);
+                      navigate("/cotizaciones");
+                    }}
+                    className={`w-full text-left px-4 py-3 border-b border-linea last:border-0 hover:bg-primary-50/60 transition-colors flex gap-3 ${!n.leida ? "bg-primary-50/40" : ""}`}
+                  >
+                    <span
+                      className={`mt-1.5 w-2 h-2 rounded-full flex-shrink-0 ${!n.leida ? "bg-primary-600" : "bg-transparent"}`}
+                      aria-hidden="true"
+                    />
+                    <span className="flex-1 min-w-0">
+                      <span className={`block text-xs font-semibold truncate ${!n.leida ? "text-primary-800" : "text-gray-700"}`}>
+                        {n.titulo}
+                      </span>
+                      <span className="block text-xs text-gray-500 mt-0.5 leading-relaxed line-clamp-2">{n.mensaje}</span>
+                      <span className="block text-xs text-gray-400 mt-1">{tiempoDesde(n.created_at, ahora)}</span>
+                    </span>
+                  </button>
+                ))
+              )}
+            </div>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+export default function Layout() {
+  const { logout, perfil } = useAuth();
+  const navigate = useNavigate();
+  const [menuAbierto, setMenuAbierto] = useState(false);
+  const cerrarMenu = () => setMenuAbierto(false);
+
+  return (
+    <div className="min-h-screen flex bg-[#F0F4F8]">
+      {/* Menú lateral escritorio */}
+      <aside className="hidden lg:flex w-64 min-h-screen flex-col flex-shrink-0 fixed left-0 top-0 bottom-0 z-20 bg-primary-600">
+        <SidebarContent perfil={perfil} logout={logout} cerrarMenu={cerrarMenu} />
       </aside>
 
-      {/* OVERLAY MÓVIL */}
+      {/* Menú lateral móvil */}
       {menuAbierto && (
-        <div
-          className="lg:hidden fixed inset-0 z-30"
-          style={{
-            background: "rgba(9,22,41,0.6)",
-            backdropFilter: "blur(4px)",
-          }}
-          onClick={cerrarMenu}
-        />
+        <div className="lg:hidden fixed inset-0 z-30 bg-primary-900/60" onClick={cerrarMenu} />
       )}
-
-      {/* SIDEBAR MÓVIL */}
       <aside
-        className={`lg:hidden fixed left-0 top-0 bottom-0 z-40 w-72 flex flex-col transition-transform duration-300 ease-in-out ${
+        className={`lg:hidden fixed left-0 top-0 bottom-0 z-40 w-72 flex flex-col bg-primary-600 transition-transform duration-300 ease-out motion-reduce:transition-none ${
           menuAbierto ? "translate-x-0" : "-translate-x-full"
         }`}
-        style={sidebarStyle}
+        aria-hidden={!menuAbierto}
       >
         <button
+          type="button"
           onClick={cerrarMenu}
-          className="absolute top-4 right-4 w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center text-white hover:bg-white/20 transition-colors z-10"
+          aria-label="Cerrar menú"
+          className="absolute top-4 right-4 w-8 h-8 rounded-lg flex items-center justify-center text-white/70 hover:text-white hover:bg-white/10 z-10"
         >
-          ✕
+          <X size={18} aria-hidden="true" />
         </button>
-        <SidebarContent
-          perfil={perfil}
-          sucursalLabel={sucursalLabel}
-          navItem={navItem}
-          logout={logout}
-        />
+        <SidebarContent perfil={perfil} logout={logout} cerrarMenu={cerrarMenu} />
       </aside>
 
-      {/* CONTENIDO */}
-      <div className="flex-1 flex flex-col min-h-screen overflow-x-hidden lg:ml-64">
-        {/* TOPBAR */}
-        <header
-          className="sticky top-0 z-10 px-4 lg:px-8 py-3.5 flex items-center justify-between flex-shrink-0"
-          style={{
-            background: "rgba(240,244,248,0.85)",
-            backdropFilter: "blur(12px)",
-            borderBottom: "1px solid rgba(27,58,107,0.08)",
-            boxShadow: "0 1px 3px rgba(27,58,107,0.06)",
-          }}
-        >
-          <div className="flex items-center gap-3">
+      {/* Contenido */}
+      <div className="flex-1 flex flex-col min-h-screen min-w-0 lg:ml-64">
+        <header className="sticky top-0 z-10 px-4 lg:px-8 h-16 flex items-center justify-between gap-3 bg-white/90 backdrop-blur border-b border-linea">
+          <div className="flex items-center gap-3 min-w-0">
             <button
+              type="button"
               onClick={() => setMenuAbierto(true)}
-              className="lg:hidden w-9 h-9 rounded-xl flex items-center justify-center transition-colors"
-              style={{
-                background: "linear-gradient(135deg, #1B3A6B, #0F2347)",
-              }}
+              aria-label="Abrir menú"
+              className="lg:hidden w-9 h-9 rounded-xl flex items-center justify-center text-primary-600 hover:bg-primary-50"
             >
-              <span className="text-white text-lg leading-none">☰</span>
+              <Menu size={20} aria-hidden="true" />
             </button>
-            <div>
-              <h1 className="text-sm font-bold text-primary-600 tracking-tight">
-                Puente Ambiental del Noroeste
-              </h1>
-              <p className="text-xs text-gray-400 mt-0.5 hidden sm:block">
-                {sucursalTopbar}
+            <div className="min-w-0">
+              <p className="text-sm font-semibold text-primary-800 truncate">Puente Ambiental del Noroeste</p>
+              <p className="text-xs text-gray-500 truncate hidden sm:block">
+                {SUCURSAL_LABEL[perfil?.sucursal_id] || ""}
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2 lg:gap-3">
-            {/* CAMPANA */}
-            <div className="relative">
-              <button
-                onClick={() => setCampanaAbierta((prev) => !prev)}
-                className="relative w-9 h-9 rounded-xl flex items-center justify-center transition-all duration-200 hover:scale-105 active:scale-95"
-                style={{
-                  background:
-                    noLeidas > 0
-                      ? "linear-gradient(135deg, #1B3A6B, #0F2347)"
-                      : "rgba(27,58,107,0.08)",
-                }}
-              >
-                <span
-                  className="text-base leading-none"
-                  style={{ color: noLeidas > 0 ? "white" : "#1B3A6B" }}
-                >
-                  🔔
-                </span>
-                {noLeidas > 0 && (
-                  <div
-                    className="absolute -top-1 -right-1 w-5 h-5 rounded-full flex items-center justify-center text-white font-bold"
-                    style={{
-                      background: "linear-gradient(135deg, #EF4444, #DC2626)",
-                      fontSize: "10px",
-                    }}
-                  >
-                    {noLeidas > 9 ? "9+" : noLeidas}
-                  </div>
-                )}
-              </button>
-
-              {campanaAbierta && (
-                <>
-                  <div
-                    className="fixed inset-0 z-40"
-                    onClick={() => setCampanaAbierta(false)}
-                  />
-                  <div
-                    className="absolute right-0 top-12 w-80 bg-white rounded-2xl border border-gray-100 overflow-hidden z-50"
-                    style={{ boxShadow: "0 20px 40px rgba(27,58,107,0.15)" }}
-                  >
-                    <div
-                      className="px-4 py-3 flex items-center justify-between"
-                      style={{
-                        background: "linear-gradient(135deg, #1B3A6B, #0F2347)",
-                      }}
-                    >
-                      <div className="flex items-center gap-2">
-                        <span className="text-white text-sm">🔔</span>
-                        <p className="text-white text-xs font-bold">
-                          Notificaciones
-                        </p>
-                        {noLeidas > 0 && (
-                          <span
-                            className="text-xs font-bold px-2 py-0.5 rounded-full text-primary-600"
-                            style={{ background: "#FFD700" }}
-                          >
-                            {noLeidas}
-                          </span>
-                        )}
-                      </div>
-                      {noLeidas > 0 && (
-                        <button
-                          onClick={marcarTodasLeidas}
-                          className="text-xs text-blue-300 hover:text-white transition-colors font-medium"
-                        >
-                          Marcar todas ✓
-                        </button>
-                      )}
-                    </div>
-
-                    <div className="max-h-80 overflow-y-auto">
-                      {notificaciones.length === 0 ? (
-                        <div className="py-10 text-center">
-                          <p className="text-3xl mb-2">🔕</p>
-                          <p className="text-xs text-gray-400 font-medium">
-                            Sin notificaciones
-                          </p>
-                        </div>
-                      ) : (
-                        notificaciones.map((n) => (
-                          <div
-                            key={n.id}
-                            onClick={() => {
-                              marcarLeida(n.id);
-                              setCampanaAbierta(false);
-                              navigate("/cotizaciones");
-                            }}
-                            className={`px-4 py-3 border-b border-gray-50 cursor-pointer hover:bg-primary-50/50 transition-colors flex gap-3 ${!n.leida ? "bg-blue-50/30" : ""}`}
-                          >
-                            <div className="flex-shrink-0 pt-1.5">
-                              <div
-                                className={`w-2 h-2 rounded-full ${!n.leida ? "bg-primary-600" : "bg-transparent"}`}
-                              ></div>
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <p
-                                className={`text-xs font-bold truncate ${!n.leida ? "text-primary-600" : "text-gray-700"}`}
-                              >
-                                {n.titulo}
-                              </p>
-                              <p className="text-xs text-gray-500 mt-0.5 leading-relaxed line-clamp-2">
-                                {n.mensaje}
-                              </p>
-                              <div className="flex items-center gap-2 mt-1">
-                                {n.folio && (
-                                  <span className="font-mono text-xs text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded">
-                                    {n.folio}
-                                  </span>
-                                )}
-                                <span className="text-xs text-gray-400">
-                                  {tiempoDesde(n.created_at)}
-                                </span>
-                              </div>
-                            </div>
-                          </div>
-                        ))
-                      )}
-                    </div>
-
-                    {notificaciones.length > 0 && (
-                      <div
-                        className="px-4 py-3 border-t border-gray-100 text-center"
-                        style={{
-                          background:
-                            "linear-gradient(135deg, #F8FAFF, #EEF2FF)",
-                        }}
-                      >
-                        <button
-                          onClick={() => {
-                            setCampanaAbierta(false);
-                            navigate("/cotizaciones");
-                          }}
-                          className="text-xs font-bold text-primary-600 hover:text-primary-800 transition-colors"
-                        >
-                          Ver historial →
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                </>
-              )}
-            </div>
-
-            <div
-              className="flex items-center gap-3 cursor-pointer rounded-xl px-3 py-2 transition-all duration-200 hover:bg-primary-50 hidden md:flex group"
-              onClick={() => navigate("/perfil")}
-            >
-              <div
-                className="w-8 h-8 rounded-xl flex items-center justify-center text-primary-600 text-sm font-bold flex-shrink-0"
-                style={{
-                  background: "linear-gradient(135deg, #FFE566, #FFD700)",
-                }}
-              >
-                {perfil?.nombre?.charAt(0)?.toUpperCase() || "U"}
-              </div>
-              <div>
-                <div className="flex items-center gap-1">
-                  <p className="text-xs font-semibold text-gray-700">
-                    {perfil?.nombre || "Usuario"}
-                  </p>
-                  <span className="text-xs text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity">
-                    ✏️
-                  </span>
-                </div>
-                <p className="text-xs text-gray-400">{sucursalLabel}</p>
-              </div>
-            </div>
-
+          <div className="flex items-center gap-2">
+            <Notificaciones />
             <button
+              type="button"
               onClick={() => {
                 navigate("/nueva");
                 cerrarMenu();
               }}
-              className="flex items-center gap-1.5 text-xs font-semibold px-3 lg:px-4 py-2.5 rounded-xl text-white transition-all duration-200 hover:scale-105 active:scale-95"
-              style={{
-                background: "linear-gradient(135deg, #1B3A6B, #0F2347)",
-                boxShadow: "0 2px 8px rgba(27,58,107,0.3)",
-              }}
+              className="inline-flex items-center gap-1.5 text-sm font-semibold px-3 sm:px-4 py-2 rounded-xl text-white bg-primary-600 hover:bg-primary-800 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-600 focus-visible:ring-offset-2"
             >
-              <span className="text-accent-400 font-bold text-sm">+</span>
+              <Plus size={16} aria-hidden="true" />
               <span className="hidden sm:inline">Nueva cotización</span>
               <span className="sm:hidden">Nueva</span>
             </button>
@@ -404,12 +274,10 @@ export default function Layout() {
           <Outlet />
         </main>
 
-        <footer className="px-4 lg:px-8 py-4 border-t border-gray-200/60 flex items-center justify-between">
-          <p className="text-xs text-gray-400 hidden sm:block">
-            © {new Date().getFullYear()} Puente Ambiental del Noroeste S.A de
-            C.V
+        <footer className="px-4 lg:px-8 py-4 border-t border-linea">
+          <p className="text-xs text-gray-400">
+            © {new Date().getFullYear()} Puente Ambiental del Noroeste S.A. de C.V.
           </p>
-          <p className="text-xs text-gray-300">Sistema de Cotizaciones v1.0</p>
         </footer>
       </div>
     </div>

@@ -88,3 +88,10 @@ export function diasParaVencer(fecha, vigencia) {
   if (!fechaVence) return null
   return Math.ceil((fechaVence - new Date()) / 86400000) + 0 // + 0 evita -0; negativo = ya venció, positivo = días que faltan
 }
+
+// Texto para mostrar el resultado de diasParaVencer
+export function textoVencimiento(dias) {
+  if (dias < 0) return `Venció hace ${-dias} ${dias === -1 ? 'día' : 'días'}`
+  if (dias === 0) return 'Venció hoy'
+  return `Vence en ${dias} ${dias === 1 ? 'día' : 'días'}`
+}
