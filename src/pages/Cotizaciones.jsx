@@ -98,22 +98,11 @@ export default function Cotizaciones() {
       const cot = await obtenerCotizacion(emailModal.folio);
       if (!cot) throw new Error("Cotización no encontrada");
       const pdfBase64 = await generarPDFBase64(cot);
-      const res = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/enviar-cotizacion`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
-          },
-          body: JSON.stringify({
-            folio: emailModal.folio,
-            email: dest,
-            pdfBase64,
-          }),
-        },
+      const { error: errorEnvio } = await supabase.functions.invoke(
+        "enviar-cotizacion",
+        { body: { folio: emailModal.folio, email: dest, pdfBase64 } },
       );
-      if (!res.ok) throw new Error();
+      if (errorEnvio) throw errorEnvio;
       setEnviado(true);
       const {
         data: { user },

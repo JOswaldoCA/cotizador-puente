@@ -32,20 +32,13 @@ export default function ModalCotizacion({ folio, emailCliente }) {
       setProgreso("Generando PDF...");
       const pdfBase64 = await generarPDFBase64(cot);
       setProgreso("Enviando correo...");
-      const res = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/enviar-cotizacion`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
-          },
-          body: JSON.stringify({ folio, email: dest, pdfBase64 }),
-        },
+      const { error: errorEnvio } = await supabase.functions.invoke(
+        "enviar-cotizacion",
+        { body: { folio, email: dest, pdfBase64 } },
       );
-      if (!res.ok) {
-        const msg = await res.text();
-        throw new Error(msg);
+      if (errorEnvio) {
+        const msg = await errorEnvio.context?.text?.().catch(() => null);
+        throw new Error(msg || errorEnvio.message);
       }
       setEnviado(true);
 

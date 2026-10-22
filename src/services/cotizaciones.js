@@ -304,16 +304,9 @@ export async function actualizarEstatus(folio, estatusNuevo, nota, perfil) {
 
     // Correo al vendedor
     try {
-      const { data: vendedor, error: errorVendedor } = await supabase
-        .from('usuarios_admin')
-        .select('email')
-        .eq('id', cot.usuario_id)
-        .single()
+      const { data: emailVendedor } = await supabase.rpc('email_vendedor', { p_folio: folio })
 
-      console.log('vendedor:', vendedor)
-      console.log('errorVendedor:', errorVendedor)
-
-      if (vendedor?.email) {
+      if (emailVendedor) {
         // Obtener token de sesión actual
         const { data: { session } } = await supabase.auth.getSession()
 
@@ -327,7 +320,7 @@ export async function actualizarEstatus(folio, estatusNuevo, nota, perfil) {
               'Authorization': `Bearer ${session.access_token}`, // ← token del usuario
             },
             body: JSON.stringify({
-              email:   vendedor.email,
+              email:   emailVendedor,
               folio,
               estatus: estatusNuevo,
               cliente: cot.cliente_contacto,
