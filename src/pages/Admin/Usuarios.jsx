@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../../services/supabase";
 import { useAuth } from "../../hooks/useAuth";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { useAvisos } from "../../hooks/useAvisos";
 
 const SUCURSALES_LABEL = {

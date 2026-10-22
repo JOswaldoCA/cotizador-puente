@@ -19,7 +19,7 @@ import { SUCURSALES } from "../utils/constantes";
 import { supabase } from "../services/supabase";
 import { exportarCotizacionesExcel } from "../utils/exportarExcel";
 import Tooltip from "../components/Tooltip";
-import { diasParaVencer } from "../utils/calculos";
+import { diasParaVencer } from "../utils/calculos";
 import { useAvisos } from "../hooks/useAvisos";
 
 const ESTATUS = ["En revisión", "Aprobada", "Rechazada"];

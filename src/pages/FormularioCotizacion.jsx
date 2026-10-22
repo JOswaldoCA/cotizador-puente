@@ -16,8 +16,8 @@ import {
 import { obtenerClientes, obtenerServicios } from "../services/sqlserver";
 import ModalCotizacion from "../components/ModalCotizacion";
 import { useAuth } from "../hooks/useAuth";
-import BasesEditor from "../components/BasesEditor";
-import { esSupervisor } from "../utils/permisos";
+import BasesEditor from "../components/BasesEditor";
+import { esSupervisor } from "../utils/permisos";
 import { useAvisos } from "../hooks/useAvisos";
 
 const input =

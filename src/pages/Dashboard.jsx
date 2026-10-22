@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { obtenerCotizaciones } from "../services/cotizaciones";
 import { useAuth } from "../hooks/useAuth";
-import { estaVencida, diasParaVencer } from "../utils/calculos";
+import { estaVencida, diasParaVencer } from "../utils/calculos";
 import { esSupervisor } from "../utils/permisos";
 
 const badgeEstatus = (e) => {
