@@ -8,7 +8,12 @@ import {
   obtenerSeguimiento,
 } from "../services/cotizaciones";
 import { generarPDFBase64 } from "../utils/generarPDF";
-import { estaVencida } from "../utils/calculos";
+import {
+  estaVencida,
+  diasParaVencer,
+  fechaDeCotizacion,
+  parsearFecha,
+} from "../utils/calculos";
 import {
   puedeEditar as permisoEditar,
   puedeEliminar as permisoEliminar,
@@ -19,7 +24,6 @@ import { SUCURSALES } from "../utils/constantes";
 import { supabase } from "../services/supabase";
 import { exportarCotizacionesExcel } from "../utils/exportarExcel";
 import Tooltip from "../components/Tooltip";
-import { diasParaVencer } from "../utils/calculos";
 import { useAvisos } from "../hooks/useAvisos";
 
 const ESTATUS = ["En revisión", "Aprobada", "Rechazada"];
@@ -200,21 +204,6 @@ export default function Cotizaciones() {
   const puedeEditar = (cot) => permisoEditar(perfil, cot);
   const puedeEliminar = (cot) => permisoEliminar(perfil, cot);
 
-  const meses = {
-    enero: 0,
-    febrero: 1,
-    marzo: 2,
-    abril: 3,
-    mayo: 4,
-    junio: 5,
-    julio: 6,
-    agosto: 7,
-    septiembre: 8,
-    octubre: 9,
-    noviembre: 10,
-    diciembre: 11,
-  };
-
   const filtradas = cotizaciones.filter((c) => {
     const matchBusqueda =
       c.cliente?.contacto?.toLowerCase().includes(busqueda.toLowerCase()) ||
@@ -229,17 +218,10 @@ export default function Cotizaciones() {
       : true;
     let matchFecha = true;
     if (fechaDesde || fechaHasta) {
-      const partes = c.fecha?.toLowerCase().split(" de ");
-      if (partes?.length === 3) {
-        const fechaCot = new Date(
-          parseInt(partes[2]),
-          meses[partes[1]],
-          parseInt(partes[0]),
-        );
-        if (fechaDesde)
-          matchFecha = matchFecha && fechaCot >= new Date(fechaDesde);
-        if (fechaHasta)
-          matchFecha = matchFecha && fechaCot <= new Date(fechaHasta);
+      const fechaCot = fechaDeCotizacion(c);
+      if (fechaCot) {
+        if (fechaDesde) matchFecha = matchFecha && fechaCot >= parsearFecha(fechaDesde);
+        if (fechaHasta) matchFecha = matchFecha && fechaCot <= parsearFecha(fechaHasta);
       }
     }
     return (
@@ -455,7 +437,7 @@ export default function Cotizaciones() {
             {/* CARDS móvil */}
             <div className="flex flex-col gap-3 lg:hidden">
               {paginadas.map((cot) => {
-                const vencida = estaVencida(cot.fecha, cot.cliente?.vigencia);
+                const vencida = estaVencida(fechaDeCotizacion(cot), cot.cliente?.vigencia);
                 const vendedor = vendedores.find(
                   (v) => v.id === cot.usuario_id,
                 );
@@ -502,7 +484,7 @@ export default function Cotizaciones() {
                         )}
                         {(() => {
                           const dias = diasParaVencer(
-                            cot.fecha,
+                            fechaDeCotizacion(cot),
                             cot.cliente?.vigencia,
                           );
                           if (dias !== null && dias > 0 && dias <= 7)
@@ -640,7 +622,7 @@ export default function Cotizaciones() {
                 <tbody className="divide-y divide-gray-50">
                   {paginadas.map((cot, i) => {
                     const vencida = estaVencida(
-                      cot.fecha,
+                      fechaDeCotizacion(cot),
                       cot.cliente?.vigencia,
                     );
                     const vendedor = vendedores.find(
@@ -685,7 +667,7 @@ export default function Cotizaciones() {
                             )}
                             {(() => {
                               const dias = diasParaVencer(
-                                cot.fecha,
+                                fechaDeCotizacion(cot),
                                 cot.cliente?.vigencia,
                               );
                               if (dias !== null && dias > 0 && dias <= 7)

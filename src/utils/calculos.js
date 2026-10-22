@@ -36,11 +36,17 @@ export function diasVigencia(vigencia) {
   return texto.includes('MES') ? n * 30 : n
 }
 
-// Fecha guardada como "22 DE OCTUBRE DE 2026" + días de vigencia
-function fechaVencimiento(fecha, vigencia) {
-  if (!fecha || !vigencia) return null
+// Fecha como Date local (medianoche). Acepta un Date, "2026-10-22" (columna
+// fecha_emision o un <input type="date">) o el texto "22 DE OCTUBRE DE 2026".
+// new Date("2026-10-22") se interpreta en UTC y en Sonora cae el día anterior.
+export function parsearFecha(valor) {
+  if (!valor) return null
+  if (valor instanceof Date) return valor
 
-  const partes = fecha.toLowerCase().split(' de ')
+  const iso = /^(\d{4})-(\d{2})-(\d{2})/.exec(valor)
+  if (iso) return new Date(Number(iso[1]), Number(iso[2]) - 1, Number(iso[3]))
+
+  const partes = String(valor).toLowerCase().split(' de ')
   if (partes.length < 3) return null
 
   const dia = parseInt(partes[0])
@@ -48,8 +54,17 @@ function fechaVencimiento(fecha, vigencia) {
   const año = parseInt(partes[2])
 
   if (isNaN(dia) || mes === undefined || isNaN(año)) return null
+  return new Date(año, mes, dia)
+}
 
-  return new Date(año, mes, dia + diasVigencia(vigencia))
+// Fecha de emisión de una cotización: la columna de fecha real si existe, si no el texto
+export const fechaDeCotizacion = (cot) =>
+  parsearFecha(cot?.fechaEmision) ?? parsearFecha(cot?.fecha)
+
+function fechaVencimiento(fecha, vigencia) {
+  const emision = parsearFecha(fecha)
+  if (!emision || !vigencia) return null
+  return new Date(emision.getFullYear(), emision.getMonth(), emision.getDate() + diasVigencia(vigencia))
 }
 
 export function estaVencida(fecha, vigencia) {

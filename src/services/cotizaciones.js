@@ -47,6 +47,7 @@ const mapearCotizacion = (c) => ({
   id:                c.id,
   folio:             c.folio,
   fecha:             c.fecha,
+  fechaEmision:      c.fecha_emision,
   estatus:           c.estatus || 'En revisión',
   notas_seguimiento: c.notas_seguimiento || '',
   usuario_id:        c.usuario_id,

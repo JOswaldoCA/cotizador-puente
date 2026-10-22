@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { obtenerCotizaciones } from "../services/cotizaciones";
 import { useAuth } from "../hooks/useAuth";
-import { estaVencida, diasParaVencer } from "../utils/calculos";
+import { estaVencida, diasParaVencer, fechaDeCotizacion } from "../utils/calculos";
 import { esSupervisor } from "../utils/permisos";
 
 const badgeEstatus = (e) => {
@@ -10,21 +10,6 @@ const badgeEstatus = (e) => {
     return "bg-emerald-50 text-emerald-700 border border-emerald-200";
   if (e === "Rechazada") return "bg-red-50 text-red-600 border border-red-200";
   return "bg-amber-50 text-amber-700 border border-amber-200";
-};
-
-const meses = {
-  enero: 0,
-  febrero: 1,
-  marzo: 2,
-  abril: 3,
-  mayo: 4,
-  junio: 5,
-  julio: 6,
-  agosto: 7,
-  septiembre: 8,
-  octubre: 9,
-  noviembre: 10,
-  diciembre: 11,
 };
 
 const MESES_LABEL = [
@@ -41,13 +26,6 @@ const MESES_LABEL = [
   "Nov",
   "Dic",
 ];
-
-const parsearFecha = (fechaStr) => {
-  if (!fechaStr) return null;
-  const partes = fechaStr.toLowerCase().split(" de ");
-  if (partes.length !== 3) return null;
-  return new Date(parseInt(partes[2]), meses[partes[1]], parseInt(partes[0]));
-};
 
 const StatCard = ({ icon, label, value, color, onClick, gradient }) => (
   <div
@@ -99,15 +77,15 @@ export default function Dashboard() {
   const hoy = new Date();
   const total = cotizaciones.length;
   const vencidas = cotizaciones.filter((c) =>
-    estaVencida(c.fecha, c.cliente?.vigencia),
+    estaVencida(fechaDeCotizacion(c), c.cliente?.vigencia),
   ).length;
   const porVencer = cotizaciones.filter((c) => {
-    const dias = diasParaVencer(c.fecha, c.cliente?.vigencia);
+    const dias = diasParaVencer(fechaDeCotizacion(c), c.cliente?.vigencia);
     return dias !== null && dias > 0 && dias <= 7;
   }).length;
 
   const delPeriodo = cotizaciones.filter((c) => {
-    const f = parsearFecha(c.fecha);
+    const f = fechaDeCotizacion(c);
     if (!f) return false;
     if (periodo === "dia") return f.toDateString() === hoy.toDateString();
     if (periodo === "mes")
@@ -132,11 +110,11 @@ export default function Dashboard() {
     const mes = d.getMonth();
     const año = d.getFullYear();
     const total = cotizaciones.filter((c) => {
-      const f = parsearFecha(c.fecha);
+      const f = fechaDeCotizacion(c);
       return f && f.getMonth() === mes && f.getFullYear() === año;
     }).length;
     const aprobadas = cotizaciones.filter((c) => {
-      const f = parsearFecha(c.fecha);
+      const f = fechaDeCotizacion(c);
       return (
         f &&
         f.getMonth() === mes &&
@@ -560,7 +538,7 @@ export default function Dashboard() {
             {/* Cards móvil */}
             <div className="lg:hidden divide-y divide-gray-50">
               {cotizaciones.slice(0, 5).map((cot) => {
-                const dias = diasParaVencer(cot.fecha, cot.cliente?.vigencia);
+                const dias = diasParaVencer(fechaDeCotizacion(cot), cot.cliente?.vigencia);
                 return (
                   <div
                     key={cot.folio}
@@ -645,7 +623,7 @@ export default function Dashboard() {
               </thead>
               <tbody className="divide-y divide-gray-50">
                 {cotizaciones.slice(0, 8).map((cot, i) => {
-                  const dias = diasParaVencer(cot.fecha, cot.cliente?.vigencia);
+                  const dias = diasParaVencer(fechaDeCotizacion(cot), cot.cliente?.vigencia);
                   return (
                     <tr
                       key={cot.folio}

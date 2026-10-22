@@ -5,6 +5,8 @@ import {
   diasParaVencer,
   diasVigencia,
   estaVencida,
+  fechaDeCotizacion,
+  parsearFecha,
 } from './calculos'
 
 describe('diasVigencia', () => {
@@ -75,5 +77,34 @@ describe('totales', () => {
 
   it('opción sin servicios da cero', () => {
     expect(calcularTotalesOpcion([])).toEqual({ subtotal: 0, iva: 0, total: 0 })
+  })
+})
+
+describe('parsearFecha', () => {
+  it('texto de la cotización', () => {
+    expect(parsearFecha('22 DE OCTUBRE DE 2026')).toEqual(new Date(2026, 9, 22))
+  })
+
+  it('fecha ISO como fecha local, no UTC (en Sonora UTC cae un día antes)', () => {
+    const f = parsearFecha('2026-10-22')
+    expect([f.getFullYear(), f.getMonth(), f.getDate(), f.getHours()]).toEqual([2026, 9, 22, 0])
+  })
+
+  it('valores inválidos dan null', () => {
+    expect(parsearFecha('')).toBeNull()
+    expect(parsearFecha('octubre 2026')).toBeNull()
+    expect(parsearFecha('22 DE OCTUBRO DE 2026')).toBeNull()
+  })
+
+  it('fechaDeCotizacion prefiere la columna fecha_emision', () => {
+    expect(fechaDeCotizacion({ fechaEmision: '2026-10-01', fecha: '22 DE OCTUBRE DE 2026' })).toEqual(new Date(2026, 9, 1))
+    expect(fechaDeCotizacion({ fecha: '22 DE OCTUBRE DE 2026' })).toEqual(new Date(2026, 9, 22))
+  })
+
+  it('el vencimiento funciona igual con fecha ISO', () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date(2026, 9, 22, 12, 0))
+    expect(diasParaVencer('2026-10-15', '10 DÍAS')).toBe(3)
+    vi.useRealTimers()
   })
 })

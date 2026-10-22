@@ -7,6 +7,7 @@ import {
   calcularServicio,
   calcularTotalesOpcion,
   estaVencida,
+  fechaDeCotizacion,
 } from "../utils/calculos";
 import {
   obtenerCotizacion,
@@ -102,7 +103,7 @@ export default function FormularioCotizacion() {
         if (!editando) return;
         if (!cot) return navigate("/cotizaciones");
         cargarCotizacion(cot);
-        setEsVencida(estaVencida(cot.fecha, cot.cliente?.vigencia));
+        setEsVencida(estaVencida(fechaDeCotizacion(cot), cot.cliente?.vigencia));
         // Prellenar buscador con el cliente actual
         if (cot.cliente?.contacto) {
           setBusquedaCliente(cot.cliente.contacto);
