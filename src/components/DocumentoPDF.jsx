@@ -456,8 +456,7 @@ export function DocumentoPDF({ cot }) {
             PUENTE AMBIENTAL DEL NOROESTE S.A DE C.V
           </Text>
           <Text style={styles.footerText}>
-            BLVD. JOSE ALBERTO HEALY NORIEGA Y CALLE PASEO PINO REAL, COL. LOS
-            PINOS RESIDENCIAL. C.P 83117 HERMOSILLO, SONORA.
+            {sucursal?.direccion} {sucursal?.cp} {sucursal?.ciudad}
           </Text>
         </View>
       </Page>

@@ -160,7 +160,7 @@ serve(async (req) => {
             <tr>
               <td bgcolor="#FFFBEB" style="border:1px solid #FDE68A;border-left:4px solid #FFD700;border-radius:8px;padding:14px 16px;text-align:left">
                 <p style="font-size:11px;font-weight:700;color:#92400E;margin:0 0 4px;font-family:Arial,sans-serif;text-transform:uppercase">
-                  📝 Nota del administrador
+                  📝 Nota de seguimiento
                 </p>
                 <p style="font-size:13px;color:#78350F;margin:0;line-height:1.6;font-family:Arial,sans-serif">${esc(nota)}</p>
               </td>
