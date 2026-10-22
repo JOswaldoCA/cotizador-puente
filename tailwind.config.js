@@ -21,6 +21,13 @@ export default {
           400: "#1D9E75",
           600: "#0F6E56",
         },
+        // Separación entre superficies (en lugar de sombras)
+        linea: "#E3E8EF",
+        estado: {
+          aprobada:  "#0F6E56",
+          rechazada: "#B42318",
+          revision:  "#B54708",
+        },
       },
       fontFamily: {
         sans: ['Inter', 'system-ui', 'sans-serif'],

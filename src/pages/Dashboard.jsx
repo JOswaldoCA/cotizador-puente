@@ -1,29 +1,34 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import {
+  AlarmClock,
+  Building2,
+  ChartColumn,
+  FileDown,
+  FileText,
+  Inbox,
+  Plus,
+  Trophy,
+} from "lucide-react";
 import { obtenerCotizaciones } from "../services/cotizaciones";
 import { supabase } from "../services/supabase";
 import { useAuth } from "../hooks/useAuth";
 import { diasParaVencer, fechaDeCotizacion } from "../utils/calculos";
 import { SUCURSALES } from "../utils/constantes";
 import { esSupervisor } from "../utils/permisos";
-
-const badgeEstatus = (e) => {
-  if (e === "Aprobada")
-    return "bg-emerald-50 text-emerald-700 border border-emerald-200";
-  if (e === "Rechazada") return "bg-red-50 text-red-600 border border-red-200";
-  return "bg-amber-50 text-amber-700 border border-amber-200";
-};
+import Boton from "../components/ui/Boton";
+import Seccion from "../components/ui/Seccion";
+import { BarraEstatus, EtiquetaEstatus } from "../components/ui/Estatus";
+import { ESTATUS } from "../components/ui/estatusEstilos";
 
 const MESES_LABEL = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
 
 const PERIODOS = [
-  { key: "dia", label: "Hoy" },
-  { key: "mes", label: "Este mes" },
-  { key: "año", label: "Este año" },
-  { key: "todo", label: "Todo" },
+  { key: "dia", label: "Hoy", frase: "hoy" },
+  { key: "mes", label: "Este mes", frase: "este mes" },
+  { key: "año", label: "Este año", frase: "este año" },
+  { key: "todo", label: "Todo", frase: "en total" },
 ];
-
-const ICONO_SUCURSAL = { matriz: "🏙️", guaymas: "⚓", obregon: "🌵" };
 
 const enRevision = (c) => !c.estatus || c.estatus === "En revisión";
 
@@ -37,75 +42,25 @@ function resumir(lista) {
     aprobadas,
     rechazadas,
     revision: lista.filter(enRevision).length,
+    decididas,
     tasa: decididas ? Math.round((aprobadas / decididas) * 100) : null,
   };
 }
 
-const tarjeta = "bg-white rounded-2xl border border-gray-100 overflow-hidden";
-const sombra = { boxShadow: "0 1px 3px rgba(27,58,107,0.06)" };
-const encabezado = { background: "linear-gradient(135deg, #F8FAFF, #EEF2FF)" };
+const plural = (n, uno, varios) => `${n} ${n === 1 ? uno : varios}`;
 
-const Seccion = ({ icono, titulo, accion, children }) => (
-  <div className={tarjeta} style={sombra}>
-    <div
-      className="px-4 lg:px-6 py-4 border-b border-gray-100 flex items-center justify-between gap-3"
-      style={encabezado}
-    >
-      <div className="flex items-center gap-3">
-        <span className="text-lg">{icono}</span>
-        <h3 className="text-sm font-bold text-primary-600">{titulo}</h3>
-      </div>
-      {accion}
-    </div>
-    {children}
-  </div>
-);
+const textoVencimiento = (dias) => {
+  if (dias < 0) return `Venció hace ${plural(-dias, "día", "días")}`;
+  if (dias === 0) return "Venció hoy";
+  return `Vence en ${plural(dias, "día", "días")}`;
+};
 
-const StatCard = ({ icon, label, value, detalle, color, onClick }) => (
-  <button
-    type="button"
-    onClick={onClick}
-    disabled={!onClick}
-    className={`rounded-2xl p-4 lg:p-5 flex items-center gap-3 lg:gap-4 border bg-white text-left transition-all duration-200 ${
-      onClick ? "cursor-pointer hover:scale-105 hover:shadow-md active:scale-95" : "cursor-default"
-    }`}
-    style={{ borderColor: "rgba(27,58,107,0.08)", ...sombra }}
-  >
-    <div
-      className="w-10 h-10 lg:w-12 lg:h-12 rounded-xl flex items-center justify-center text-xl flex-shrink-0"
-      style={{ background: color }}
-    >
-      {icon}
-    </div>
-    <div className="min-w-0">
-      <p className="text-xs font-semibold uppercase tracking-widest text-gray-400">{label}</p>
-      <p className="text-2xl lg:text-3xl font-bold mt-0.5" style={{ color: "#1B3A6B" }}>
-        {value}
-      </p>
-      {detalle && <p className="text-xs text-gray-400 truncate">{detalle}</p>}
-    </div>
-  </button>
-);
-
-// Barra horizontal con aprobadas / rechazadas / en revisión
-const BarraEstatus = ({ r }) =>
-  r.total === 0 ? (
-    <div className="h-2 rounded-full bg-gray-100" />
-  ) : (
-    <div className="h-2 rounded-full bg-gray-100 flex overflow-hidden">
-      <div className="bg-emerald-500" style={{ width: `${(r.aprobadas / r.total) * 100}%` }} />
-      <div className="bg-red-400" style={{ width: `${(r.rechazadas / r.total) * 100}%` }} />
-      <div className="bg-amber-300" style={{ width: `${(r.revision / r.total) * 100}%` }} />
-    </div>
-  );
-
+// ── Contenedor: carga los datos ─────────────────────────────────
 export default function Dashboard() {
   const [cotizaciones, setCotizaciones] = useState([]);
   const [vendedores, setVendedores] = useState({});
   const [cargando, setCargando] = useState(true);
-  const [periodo, setPeriodo] = useState("mes");
   const { perfil } = useAuth();
-  const navigate = useNavigate();
   const supervisor = esSupervisor(perfil);
 
   useEffect(() => {
@@ -125,7 +80,23 @@ export default function Dashboard() {
       );
   }, [supervisor]);
 
-  const hoy = useMemo(() => new Date(), []);
+  if (cargando)
+    return (
+      <div className="flex justify-center items-center py-20 gap-3 text-gray-400 text-sm">
+        <div className="w-5 h-5 border-2 border-primary-600/20 border-t-primary-600 rounded-full animate-spin"></div>
+        Cargando dashboard...
+      </div>
+    );
+
+  return <DashboardVista cotizaciones={cotizaciones} vendedores={vendedores} perfil={perfil} />;
+}
+
+// ── Vista: solo dibuja (se puede mostrar con datos de prueba) ───
+export function DashboardVista({ cotizaciones, vendedores, perfil, hoy: hoyProp }) {
+  const [periodo, setPeriodo] = useState("mes");
+  const navigate = useNavigate();
+  const supervisor = esSupervisor(perfil);
+  const hoy = useMemo(() => hoyProp || new Date(), [hoyProp]);
 
   const delPeriodo = useMemo(
     () =>
@@ -142,8 +113,9 @@ export default function Dashboard() {
   );
 
   const resumen = resumir(delPeriodo);
+  const frasePeriodo = PERIODOS.find((p) => p.key === periodo).frase;
 
-  // Cotizaciones en revisión que ya vencieron o vencen en los próximos 7 días
+  // En revisión que ya vencieron o vencen en los próximos 7 días
   const pendientes = useMemo(
     () =>
       cotizaciones
@@ -184,143 +156,134 @@ export default function Dashboard() {
     .map(({ id, lista }) => ({ id, nombre: vendedores[id] || "Usuario", r: resumir(lista) }))
     .sort((a, b) => b.r.total - a.r.total);
 
-  const etiquetaPeriodo = PERIODOS.find((p) => p.key === periodo).label.toLowerCase();
-
-  if (cargando)
-    return (
-      <div className="flex justify-center items-center py-20 gap-3 text-gray-400 text-sm">
-        <div className="w-5 h-5 border-2 border-primary-600/20 border-t-primary-600 rounded-full animate-spin"></div>
-        Cargando dashboard...
-      </div>
-    );
-
   return (
-    <div className="flex flex-col gap-5 lg:gap-6">
+    <div className="flex flex-col gap-5 lg:gap-6 tabular-nums">
       {/* Saludo */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3">
         <div>
-          <h2 className="text-xl lg:text-2xl font-bold tracking-tight" style={{ color: "#1B3A6B" }}>
-            Hola, {perfil?.nombre?.split(" ")[0] || "Usuario"} 👋
+          <h2 className="text-2xl font-semibold tracking-tight text-primary-800">
+            Hola, {perfil?.nombre?.split(" ")[0] || "Usuario"}
           </h2>
-          <p className="text-sm text-gray-400 mt-1">
-            {supervisor
-              ? "👁️ Vista global — todas las sucursales"
-              : "Aquí está el resumen de tu actividad"}
-            {" · "}
-            {hoy.toLocaleDateString("es-MX", { weekday: "long", day: "numeric", month: "long" })}
+          <p className="text-sm text-gray-500 mt-0.5">
+            {supervisor ? "Cotizaciones de todas las sucursales" : "Tus cotizaciones"}
           </p>
         </div>
-        <button
-          onClick={() => navigate("/nueva")}
-          className="text-white text-sm font-bold px-5 py-2.5 rounded-xl transition-all duration-200 hover:scale-105 active:scale-95 w-full sm:w-auto"
-          style={{
-            background: "linear-gradient(135deg, #1B3A6B, #0F2347)",
-            boxShadow: "0 4px 16px rgba(27,58,107,0.3)",
-          }}
-        >
-          ＋ Nueva cotización
-        </button>
+        <Boton icono={Plus} onClick={() => navigate("/nueva")} className="w-full sm:w-auto">
+          Nueva cotización
+        </Boton>
       </div>
 
-      {/* Selector período: aplica a tarjetas, sucursales y vendedores */}
-      <div
-        className="flex items-center gap-1 bg-white border border-gray-100 rounded-2xl p-1.5 w-full sm:w-fit"
-        style={sombra}
-      >
-        {PERIODOS.map(({ key, label }) => (
-          <button
-            key={key}
-            onClick={() => setPeriodo(key)}
-            className="flex-1 sm:flex-none text-xs font-semibold px-3 lg:px-5 py-2 rounded-xl transition-all duration-200"
-            style={
-              periodo === key
-                ? {
-                    background: "linear-gradient(135deg, #1B3A6B, #0F2347)",
-                    color: "white",
-                    boxShadow: "0 2px 8px rgba(27,58,107,0.3)",
-                  }
-                : { color: "#6B7280" }
-            }
+      {/* Resumen del período */}
+      <section className="rounded-2xl bg-primary-600 text-white p-5 lg:p-7 flex flex-col gap-5">
+        <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-4">
+          <p className="text-lg lg:text-xl text-white/90 leading-tight">
+            <span className="block text-5xl lg:text-6xl font-semibold text-accent-400 tracking-tight mb-1">
+              {resumen.total}
+            </span>
+            {resumen.total === 1 ? "cotización" : "cotizaciones"} {frasePeriodo}
+          </p>
+          <div
+            className="flex gap-1 bg-white/10 rounded-xl p-1 self-start"
+            role="group"
+            aria-label="Período"
           >
-            {label}
-          </button>
-        ))}
-      </div>
+            {PERIODOS.map(({ key, label }) => (
+              <button
+                key={key}
+                type="button"
+                onClick={() => setPeriodo(key)}
+                aria-pressed={periodo === key}
+                className={`text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-400 ${
+                  periodo === key ? "bg-white text-primary-800" : "text-white/75 hover:text-white"
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        </div>
 
-      {/* Tarjetas del período */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
-        <StatCard
-          icon="📋"
-          label="Cotizaciones"
-          value={resumen.total}
-          detalle={etiquetaPeriodo}
-          color="rgba(27,58,107,0.08)"
-          onClick={() => navigate("/cotizaciones")}
-        />
-        <StatCard
-          icon="✅"
-          label="Aprobadas"
-          value={resumen.aprobadas}
-          detalle={resumen.tasa === null ? "sin decisiones aún" : `${resumen.tasa}% de las decididas`}
-          color="rgba(16,185,129,0.12)"
-        />
-        <StatCard
-          icon="🔍"
-          label="En revisión"
-          value={resumen.revision}
-          detalle={vencidas ? `${vencidas} vencida${vencidas > 1 ? "s" : ""}` : "ninguna vencida"}
-          color="rgba(245,158,11,0.15)"
-        />
-        <StatCard
-          icon="❌"
-          label="Rechazadas"
-          value={resumen.rechazadas}
-          color="rgba(239,68,68,0.1)"
-        />
-      </div>
+        <BarraEstatus r={resumen} alto="h-2.5" fondo="bg-white/15" />
+
+        <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm">
+          {[
+            { n: resumen.aprobadas, texto: "aprobadas", clase: ESTATUS.Aprobada.barra },
+            { n: resumen.rechazadas, texto: "rechazadas", clase: ESTATUS.Rechazada.barra },
+            { n: resumen.revision, texto: "en revisión", clase: ESTATUS["En revisión"].barra },
+          ].map(({ n, texto, clase }) => (
+            <span key={texto} className="flex items-center gap-2 text-white/80">
+              <span className={`w-2.5 h-2.5 rounded-full ${clase} ring-2 ring-white/20`} aria-hidden="true" />
+              <b className="text-white font-semibold">{n}</b> {texto}
+            </span>
+          ))}
+          <span className="lg:ml-auto text-white/80">
+            {resumen.tasa === null ? (
+              "Aún no hay cotizaciones aprobadas o rechazadas"
+            ) : (
+              <>
+                <b className="text-white font-semibold">{resumen.tasa}%</b> de aprobación entre{" "}
+                {plural(resumen.decididas, "decidida", "decididas")}
+              </>
+            )}
+          </span>
+        </div>
+      </section>
 
       {/* Requieren atención */}
       {pendientes.length > 0 && (
         <Seccion
-          icono="⏰"
+          icono={AlarmClock}
           titulo={`Requieren atención (${pendientes.length})`}
-          accion={<span className="text-xs text-gray-400 hidden sm:inline">En revisión, vencidas o por vencer en 7 días</span>}
+          descripcion={
+            vencidas
+              ? `${plural(vencidas, "vencida", "vencidas")} y ${pendientes.length - vencidas} por vencer en 7 días`
+              : "En revisión, por vencer en los próximos 7 días"
+          }
         >
-          <div className="divide-y divide-gray-50">
+          <ul className="divide-y divide-linea">
             {pendientes.slice(0, 6).map(({ cot, dias }) => (
-              <div key={cot.folio} className="px-4 lg:px-6 py-3 flex items-center justify-between gap-3">
+              <li key={cot.folio} className="px-4 lg:px-6 py-3 flex items-center justify-between gap-3">
                 <div className="min-w-0">
-                  <p className="font-semibold text-gray-800 text-sm truncate">
-                    {cot.cliente?.contacto || cot.cliente?.atencion || "—"}
+                  <p className="font-medium text-gray-800 text-sm truncate">
+                    {cot.cliente?.contacto || cot.cliente?.atencion || "Sin cliente"}
                   </p>
-                  <p className="text-xs text-gray-400 font-mono">{cot.folio}</p>
-                </div>
-                <div className="flex items-center gap-2 flex-shrink-0">
-                  <span
-                    className={`text-xs font-bold px-2.5 py-1 rounded-lg border ${
-                      dias <= 0
-                        ? "bg-red-50 text-red-600 border-red-200"
-                        : "bg-amber-50 text-amber-700 border-amber-200"
+                  <p className="text-xs text-gray-500">
+                    <span className="font-mono">{cot.folio}</span>
+                  </p>
+                  <p
+                    className={`text-xs font-semibold sm:hidden ${
+                      dias <= 0 ? "text-estado-rechazada" : "text-estado-revision"
                     }`}
                   >
-                    {dias <= 0 ? "Vencida" : `Vence en ${dias}d`}
+                    {textoVencimiento(dias)}
+                  </p>
+                </div>
+                <div className="flex items-center gap-3 flex-shrink-0">
+                  <span
+                    className={`text-xs font-semibold hidden sm:inline ${
+                      dias <= 0 ? "text-estado-rechazada" : "text-estado-revision"
+                    }`}
+                  >
+                    {textoVencimiento(dias)}
                   </span>
-                  <button
+                  <Boton
+                    variante="secundario"
+                    tamaño="sm"
                     onClick={() => navigate(`/cotizaciones/${cot.folio}/editar`)}
-                    className="text-xs font-semibold text-primary-600 px-3 py-1.5 rounded-lg hover:bg-primary-50 border border-primary-100 transition-colors"
                   >
                     {dias <= 0 ? "Renovar" : "Abrir"}
-                  </button>
+                  </Boton>
                 </div>
-              </div>
+              </li>
             ))}
-          </div>
+          </ul>
           {pendientes.length > 6 && (
             <button
+              type="button"
               onClick={() => navigate("/cotizaciones")}
-              className="w-full text-xs font-semibold text-primary-600 py-3 border-t border-gray-100 hover:bg-primary-50/40"
+              className="w-full text-xs font-semibold text-primary-600 py-3 border-t border-linea hover:bg-primary-50/50"
             >
-              Ver las {pendientes.length - 6} restantes →
+              Ver las {pendientes.length - 6} restantes en Cotizaciones
             </button>
           )}
         </Seccion>
@@ -329,47 +292,50 @@ export default function Dashboard() {
       <div className={`grid gap-5 lg:gap-6 ${supervisor ? "lg:grid-cols-2" : ""}`}>
         {/* Gráfica — últimos 6 meses */}
         <Seccion
-          icono="📈"
+          icono={ChartColumn}
           titulo="Últimos 6 meses"
           accion={
-            <div className="flex items-center gap-3 text-xs">
-              <span className="flex items-center gap-1.5 text-gray-500 font-medium">
-                <span className="w-3 h-3 rounded-sm" style={{ background: "#1B3A6B" }}></span>
+            <div className="flex items-center gap-3 text-xs text-gray-500">
+              <span className="flex items-center gap-1.5">
+                <span className="w-2.5 h-2.5 rounded-sm bg-primary-600" aria-hidden="true" />
                 Total
               </span>
-              <span className="flex items-center gap-1.5 text-gray-500 font-medium">
-                <span className="w-3 h-3 rounded-sm bg-emerald-500"></span>
+              <span className="flex items-center gap-1.5">
+                <span className={`w-2.5 h-2.5 rounded-sm ${ESTATUS.Aprobada.barra}`} aria-hidden="true" />
                 Aprobadas
               </span>
             </div>
           }
         >
-          <div className="px-4 lg:px-6 pt-8 pb-5">
-            <div className="flex items-end gap-3 lg:gap-4 h-36">
+          <div className="px-4 lg:px-6 pt-6 pb-4">
+            <div className="flex items-end gap-3 lg:gap-5 h-40 border-b border-linea">
               {datosMeses.map((d) => (
-                <div key={d.label} className="flex-1 flex flex-col items-center gap-1.5 h-full">
-                  <div className="w-full flex items-end gap-1 flex-1">
-                    {[
-                      { valor: d.total, color: "linear-gradient(180deg, #1B3A6B, #0F2347)" },
-                      { valor: d.aprobadas, color: "linear-gradient(180deg, #10B981, #059669)" },
-                    ].map((barra, j) => (
-                      <div key={j} className="flex-1 h-full flex flex-col justify-end items-center">
-                        {barra.valor > 0 && (
-                          <span className="text-[10px] font-bold text-gray-500 mb-0.5">{barra.valor}</span>
-                        )}
-                        <div
-                          className="w-full rounded-t-md transition-all duration-500"
-                          style={{
-                            height: `${(barra.valor / maxValor) * 100}%`,
-                            minHeight: barra.valor > 0 ? "4px" : "0",
-                            background: barra.color,
-                          }}
-                        />
-                      </div>
-                    ))}
-                  </div>
-                  <p className="text-xs font-semibold text-gray-400">{d.label}</p>
+                <div key={d.label} className="flex-1 h-full flex items-end gap-1">
+                  {[
+                    { valor: d.total, clase: "bg-primary-600" },
+                    { valor: d.aprobadas, clase: ESTATUS.Aprobada.barra },
+                  ].map((barra, j) => (
+                    <div key={j} className="flex-1 h-full flex flex-col justify-end items-center">
+                      {barra.valor > 0 && (
+                        <span className="text-[11px] font-semibold text-gray-600 mb-1">{barra.valor}</span>
+                      )}
+                      <div
+                        className={`w-full rounded-t ${barra.clase}`}
+                        style={{
+                          height: `${(barra.valor / maxValor) * 85}%`,
+                          minHeight: barra.valor > 0 ? "3px" : "0",
+                        }}
+                      />
+                    </div>
+                  ))}
                 </div>
+              ))}
+            </div>
+            <div className="flex gap-3 lg:gap-5 mt-2">
+              {datosMeses.map((d) => (
+                <p key={d.label} className="flex-1 text-center text-xs text-gray-500">
+                  {d.label}
+                </p>
               ))}
             </div>
           </div>
@@ -377,116 +343,107 @@ export default function Dashboard() {
 
         {/* Por sucursal */}
         {supervisor && (
-          <Seccion icono="🏢" titulo={`Por sucursal · ${etiquetaPeriodo}`}>
-            <div className="divide-y divide-gray-50">
+          <Seccion icono={Building2} titulo="Por sucursal" descripcion={`Cotizaciones ${frasePeriodo}`}>
+            <ul className="divide-y divide-linea">
               {porSucursal.map(({ id, tipo, r }) => (
-                <div key={id} className="px-4 lg:px-6 py-3.5 flex flex-col gap-2">
-                  <div className="flex items-center justify-between gap-2">
-                    <p className="text-sm font-bold text-gray-700">
-                      {ICONO_SUCURSAL[id]} {tipo}
-                    </p>
-                    <p className="text-xs text-gray-500">
-                      <span className="font-bold text-gray-700">{r.total}</span> cotizaciones
-                      {r.tasa !== null && <> · <span className="font-bold text-emerald-600">{r.tasa}%</span> aprobación</>}
+                <li key={id} className="px-4 lg:px-6 py-4 flex flex-col gap-2">
+                  <div className="flex items-baseline justify-between gap-2">
+                    <p className="text-sm font-medium text-gray-800">{tipo}</p>
+                    <p className="text-sm text-gray-500">
+                      <b className="font-semibold text-gray-800">{r.total}</b>
+                      {r.tasa !== null && <span className="ml-3">{r.tasa}% aprobación</span>}
                     </p>
                   </div>
                   <BarraEstatus r={r} />
-                  <div className="flex gap-3 text-xs text-gray-400">
-                    <span>✅ {r.aprobadas}</span>
-                    <span>❌ {r.rechazadas}</span>
-                    <span>🔍 {r.revision}</span>
-                  </div>
-                </div>
+                </li>
               ))}
-            </div>
+            </ul>
           </Seccion>
         )}
       </div>
 
       {/* Por vendedor */}
       {supervisor && (
-        <Seccion icono="🧑‍💼" titulo={`Por vendedor · ${etiquetaPeriodo}`}>
+        <Seccion icono={Trophy} titulo="Por vendedor" descripcion={`Ordenado por cotizaciones ${frasePeriodo}`}>
           {porVendedor.length === 0 ? (
-            <p className="px-6 py-10 text-center text-sm text-gray-400">Sin cotizaciones en este período</p>
+            <p className="px-6 py-10 text-center text-sm text-gray-500">
+              Nadie ha cotizado {frasePeriodo}.
+            </p>
           ) : (
-            <div className="divide-y divide-gray-50">
+            <ol className="divide-y divide-linea">
               {porVendedor.map(({ id, nombre, r }, i) => (
-                <div key={id} className="px-4 lg:px-6 py-3 grid grid-cols-[auto_1fr_auto] items-center gap-3">
+                <li key={id} className="px-4 lg:px-6 py-3 grid grid-cols-[1.75rem_1fr_auto] items-center gap-3">
                   <span
-                    className="w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold"
-                    style={i === 0 ? { background: "#FFD700", color: "#1B3A6B" } : { background: "#F3F4F6", color: "#6B7280" }}
+                    className={`w-7 h-7 rounded-lg flex items-center justify-center text-xs font-semibold ${
+                      i === 0 ? "bg-accent-400 text-primary-800" : "bg-gray-100 text-gray-500"
+                    }`}
                   >
                     {i + 1}
                   </span>
                   <div className="min-w-0 flex flex-col gap-1.5">
-                    <p className="text-sm font-semibold text-gray-800 truncate">{nombre}</p>
+                    <p className="text-sm font-medium text-gray-800 truncate">{nombre}</p>
                     <BarraEstatus r={r} />
                   </div>
-                  <div className="text-right">
-                    <p className="text-sm font-bold text-gray-700">{r.total}</p>
-                    <p className="text-xs text-gray-400">
-                      {r.tasa === null ? "—" : `${r.tasa}% aprob.`}
+                  <div className="text-right whitespace-nowrap">
+                    <p className="text-sm font-semibold text-gray-800">{r.total}</p>
+                    <p className="text-xs text-gray-500">
+                      {r.tasa === null ? "sin decisiones" : `${r.tasa}% aprobación`}
                     </p>
                   </div>
-                </div>
+                </li>
               ))}
-            </div>
+            </ol>
           )}
         </Seccion>
       )}
 
       {/* Últimas cotizaciones */}
       <Seccion
-        icono="📋"
+        icono={FileText}
         titulo="Últimas cotizaciones"
         accion={
-          <button
-            onClick={() => navigate("/cotizaciones")}
-            className="text-xs font-semibold text-primary-600 hover:text-primary-800 px-3 py-1.5 rounded-lg hover:bg-primary-50 transition-all duration-200 border border-primary-100"
-          >
-            Ver todas →
-          </button>
+          <Boton variante="fantasma" tamaño="sm" onClick={() => navigate("/cotizaciones")}>
+            Ver todas
+          </Boton>
         }
       >
         {cotizaciones.length === 0 ? (
-          <div className="px-6 py-16 text-center">
-            <p className="text-4xl mb-3">📭</p>
-            <p className="text-sm font-medium text-gray-500">No hay cotizaciones aún</p>
-            <button
-              onClick={() => navigate("/nueva")}
-              className="mt-4 text-xs font-semibold text-primary-600 hover:underline"
-            >
-              Crear primera cotización →
-            </button>
+          <div className="px-6 py-14 text-center flex flex-col items-center gap-3">
+            <Inbox size={32} strokeWidth={1.5} className="text-gray-300" aria-hidden="true" />
+            <p className="text-sm text-gray-500">Todavía no hay cotizaciones.</p>
+            <Boton variante="secundario" tamaño="sm" icono={Plus} onClick={() => navigate("/nueva")}>
+              Crear la primera
+            </Boton>
           </div>
         ) : (
-          <div className="divide-y divide-gray-50">
+          <ul className="divide-y divide-linea">
             {cotizaciones.slice(0, 8).map((cot) => (
-              <div key={cot.folio} className="px-4 lg:px-6 py-3 flex items-center justify-between gap-3">
+              <li key={cot.folio} className="px-4 lg:px-6 py-3 flex items-center justify-between gap-3">
                 <div className="min-w-0 flex-1">
-                  <p className="font-semibold text-gray-800 text-sm truncate">
-                    {cot.cliente?.contacto || "—"}
+                  <p className="font-medium text-gray-800 text-sm truncate">
+                    {cot.cliente?.contacto || "Sin cliente"}
                   </p>
-                  <p className="text-xs text-gray-400 mt-0.5 truncate">
+                  <p className="text-xs text-gray-500 mt-0.5 truncate">
                     <span className="font-mono">{cot.folio}</span>
-                    <span className="hidden sm:inline"> · {cot.fecha}</span>
-                    {supervisor && <span className="hidden md:inline"> · {cot.sucursal?.tipo}</span>}
+                    <span className="hidden sm:inline ml-3">{cot.fecha}</span>
+                    {supervisor && <span className="hidden md:inline ml-3">{cot.sucursal?.tipo}</span>}
                   </p>
                 </div>
                 <div className="flex items-center gap-2 flex-shrink-0">
-                  <span className={`text-xs font-semibold px-2.5 py-1 rounded-lg ${badgeEstatus(cot.estatus)}`}>
-                    {cot.estatus || "En revisión"}
-                  </span>
-                  <button
+                  <EtiquetaEstatus estatus={cot.estatus} />
+                  <Boton
+                    variante="fantasma"
+                    tamaño="sm"
+                    icono={FileDown}
                     onClick={() => window.open(`/preview/${cot.folio}`, "_blank")}
-                    className="text-xs font-semibold text-primary-600 hover:text-primary-800 px-3 py-1.5 rounded-lg hover:bg-primary-50 border border-primary-100 transition-colors"
+                    aria-label={`Ver PDF de ${cot.folio}`}
                   >
-                    PDF
-                  </button>
+                    <span className="hidden sm:inline">PDF</span>
+                  </Boton>
                 </div>
-              </div>
+              </li>
             ))}
-          </div>
+          </ul>
         )}
       </Seccion>
     </div>
