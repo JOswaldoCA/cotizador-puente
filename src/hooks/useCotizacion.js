@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { SUCURSALES } from "../utils/constantes";
-import { generarFolio, estaVencida } from '../utils/calculos'
+import { diasVigencia } from '../utils/calculos'
 
 
 const servicioVacio = () => ({
@@ -19,13 +19,12 @@ const opcionVacia = () => ({
 });
 
 export function useCotizacion() {
-  const [folio, setFolio] = useState(() => generarFolio(SUCURSALES[0].id));
   const [sucursal, setSucursal] = useState(SUCURSALES[0]);
   const [opciones, setOpciones] = useState([opcionVacia()]);
   const [cliente, setCliente] = useState({
     atencion: "",
     contacto: "",
-    vigencia: "1 MES",
+    vigencia: "30 DÍAS",
     pago: "MES SERVIDO",
     email: "",
     notas: "",
@@ -33,23 +32,17 @@ export function useCotizacion() {
   const [basesExtra, setBasesExtra] = useState([])
 
   const cargarCotizacion = (cot) => {
-  const vencida = estaVencida(cot.fecha, cot.cliente?.vigencia)
   const s = SUCURSALES.find(s => s.id === cot.sucursal.id) || SUCURSALES[0]
-  
-  setFolio(vencida ? generarFolio(s.id) : cot.folio)  // ← nuevo folio si vencida
+
   setSucursal(s)
-  setCliente(cot.cliente)
+  // Cotizaciones anteriores pueden traer "1 MES", que ya no está en VIGENCIAS
+  setCliente({ ...cot.cliente, vigencia: `${diasVigencia(cot.cliente?.vigencia)} DÍAS` })
   setBasesExtra(cot.basesExtra || [])
   setOpciones(cot.opciones.map(op => ({
     id:       Date.now() + Math.random(),
     servicios: op.servicios,
   })))
 }
-
-  const cambiarSucursal = (s) => {
-    setSucursal(s);
-    setFolio(generarFolio(s.id));
-  };
 
   const agregarOpcion = () => setOpciones((prev) => [...prev, opcionVacia()]);
 
@@ -88,10 +81,8 @@ export function useCotizacion() {
     );
 
   return {
-    folio,
-    setFolio,
     sucursal,
-    setSucursal: cambiarSucursal,
+    setSucursal,
     opciones,
     setOpciones,
     agregarOpcion,

@@ -36,7 +36,6 @@ const SectionHeader = ({ title, icon }) => (
 
 export default function NuevaCotizacion() {
   const {
-    folio,
     sucursal,
     setSucursal,
     opciones,
@@ -138,8 +137,7 @@ export default function NuevaCotizacion() {
         ...op,
         ...calcularTotalesOpcion(op.servicios),
       }));
-      await guardarCotizacion({
-        folio,
+      const guardada = await guardarCotizacion({
         fecha: fechaHoy(),
         sucursal,
         cliente: {
@@ -150,7 +148,7 @@ export default function NuevaCotizacion() {
         opciones: opcionesConTotales,
         basesExtra,
       });
-      setModalFolio(folio);
+      setModalFolio(guardada.folio);
     } catch (e) {
       alert("Error al guardar: " + e.message);
     }
@@ -168,7 +166,7 @@ export default function NuevaCotizacion() {
             </h2>
             <p className="text-xs text-gray-400 font-mono mt-0.5">
               Folio:{" "}
-              <span className="text-primary-600 font-semibold">{folio}</span>
+              <span className="text-primary-600 font-semibold">se asigna al guardar</span>
             </p>
           </div>
           <span

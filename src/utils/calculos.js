@@ -14,19 +14,6 @@ export function formatMXN(n) {
   })
 }
 
-const PREFIJOS = {
-  matriz:  'HMO',
-  guaymas: 'GYM',
-  obregon: 'OBR',
-}
-
-export function generarFolio(sucursalId = 'matriz') {
-  const año    = new Date().getFullYear()
-  const prefijo = PREFIJOS[sucursalId] || 'HMO'
-  const rand   = String(Math.floor(Math.random() * 9000) + 1000)
-  return `COT-${prefijo}-${año}-${rand}`
-}
-
 export function fechaHoy() {
   return new Date().toLocaleDateString('es-MX', {
     day:   '2-digit',
@@ -35,37 +22,39 @@ export function fechaHoy() {
   }).toUpperCase()
 }
 
-export function estaVencida(fecha, vigencia) {
-  if (!fecha || !vigencia) return false
+const MESES = {
+  'enero': 0, 'febrero': 1, 'marzo': 2, 'abril': 3,
+  'mayo': 4, 'junio': 5, 'julio': 6, 'agosto': 7,
+  'septiembre': 8, 'octubre': 9, 'noviembre': 10, 'diciembre': 11,
+}
 
-  // Parsear fecha de la cotización
-  const meses = {
-    'enero': 0, 'febrero': 1, 'marzo': 2, 'abril': 3,
-    'mayo': 4, 'junio': 5, 'julio': 6, 'agosto': 7,
-    'septiembre': 8, 'octubre': 9, 'noviembre': 10, 'diciembre': 11,
-  }
+// "7 DÍAS" → 7, "15 DÍAS" → 15, "1 MES" (cotizaciones anteriores) → 30
+export function diasVigencia(vigencia) {
+  const texto = String(vigencia || '').toUpperCase()
+  const n = parseInt(texto)
+  if (isNaN(n)) return 30
+  return texto.includes('MES') ? n * 30 : n
+}
+
+// Fecha guardada como "22 DE OCTUBRE DE 2026" + días de vigencia
+function fechaVencimiento(fecha, vigencia) {
+  if (!fecha || !vigencia) return null
 
   const partes = fecha.toLowerCase().split(' de ')
-  if (partes.length < 3) return false
+  if (partes.length < 3) return null
 
-  const dia  = parseInt(partes[0])
-  const mes  = meses[partes[1]]
-  const año  = parseInt(partes[2])
+  const dia = parseInt(partes[0])
+  const mes = MESES[partes[1]]
+  const año = parseInt(partes[2])
 
-  if (isNaN(dia) || mes === undefined || isNaN(año)) return false
+  if (isNaN(dia) || mes === undefined || isNaN(año)) return null
 
-  const fechaCot = new Date(año, mes, dia)
+  return new Date(año, mes, dia + diasVigencia(vigencia))
+}
 
-  // Calcular días de vigencia
-  let dias = 30
-  if (vigencia.includes('15')) dias = 15
-  if (vigencia.includes('30')) dias = 30
-  if (vigencia.includes('1 MES')) dias = 30
-
-  const fechaVence = new Date(fechaCot)
-  fechaVence.setDate(fechaVence.getDate() + dias)
-
-  return new Date() > fechaVence
+export function estaVencida(fecha, vigencia) {
+  const fechaVence = fechaVencimiento(fecha, vigencia)
+  return fechaVence ? new Date() > fechaVence : false
 }
 
 export function calcularServicio({ precioUnitario, numContenedores, precioDia, diasSemana }) {
@@ -80,34 +69,7 @@ export function calcularTotalesOpcion(servicios) {
 }
 
 export function diasParaVencer(fecha, vigencia) {
-  if (!fecha || !vigencia) return null
-
-  const meses = {
-    'enero': 0, 'febrero': 1, 'marzo': 2, 'abril': 3,
-    'mayo': 4, 'junio': 5, 'julio': 6, 'agosto': 7,
-    'septiembre': 8, 'octubre': 9, 'noviembre': 10, 'diciembre': 11,
-  }
-
-  const partes = fecha.toLowerCase().split(' de ')
-  if (partes.length < 3) return null
-
-  const dia = parseInt(partes[0])
-  const mes = meses[partes[1]]
-  const año = parseInt(partes[2])
-
-  if (isNaN(dia) || mes === undefined || isNaN(año)) return null
-
-  const fechaCot = new Date(año, mes, dia)
-
-  let dias = 30
-  if (vigencia.includes('15')) dias = 15
-  if (vigencia.includes('30')) dias = 30
-  if (vigencia.includes('1 MES')) dias = 30
-
-  const fechaVence = new Date(fechaCot)
-  fechaVence.setDate(fechaVence.getDate() + dias)
-
-  const hoy = new Date()
-  const diff = Math.ceil((fechaVence - hoy) / 86400000)
-  return diff // negativo = ya venció, positivo = días que faltan
+  const fechaVence = fechaVencimiento(fecha, vigencia)
+  if (!fechaVence) return null
+  return Math.ceil((fechaVence - new Date()) / 86400000) // negativo = ya venció, positivo = días que faltan
 }

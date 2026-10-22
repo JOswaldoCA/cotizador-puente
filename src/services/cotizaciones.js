@@ -28,11 +28,19 @@ async function registrarBitacora({ accion, folio, detalle, sucursal }) {
 }
 
 // ── guardarCotizacion ────────────────────────────────────────────
+// El folio lo asigna la base de datos (consecutivo por sucursal y año)
 export async function guardarCotizacion(cot) {
+  const { data: folio, error: errorFolio } = await supabase.rpc(
+    "siguiente_folio",
+    { p_sucursal: cot.sucursal.id },
+  );
+
+  if (errorFolio) throw errorFolio;
+
   const { data, error } = await supabase
     .from("cotizaciones")
     .insert({
-      folio: cot.folio,
+      folio,
       fecha: cot.fecha,
       usuario_id: (await supabase.auth.getUser()).data.user.id,
       sucursal_id: cot.sucursal.id,
@@ -72,7 +80,7 @@ export async function guardarCotizacion(cot) {
   // ← Registrar en bitácora
   await registrarBitacora({
     accion: "CREÓ",
-    folio: cot.folio,
+    folio,
     detalle: `Cliente: ${cot.cliente.contacto || cot.cliente.atencion}`,
     sucursal: cot.sucursal.tipo,
   });

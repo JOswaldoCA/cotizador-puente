@@ -47,7 +47,6 @@ export default function EditarCotizacion() {
   const { perfil } = useAuth(); // ← agrega
 
   const {
-    folio,
     sucursal,
     setSucursal, // ← agrega
     opciones,
@@ -156,15 +155,16 @@ export default function EditarCotizacion() {
         atencion: cliente.atencion?.toUpperCase(),
         contacto: cliente.contacto?.toUpperCase(),
       };
+      let folioGuardado = folioParam;
       if (esVencida) {
-        await guardarCotizacion({
-          folio,
+        const guardada = await guardarCotizacion({
           fecha: fechaHoy(),
           sucursal,
           cliente: clienteGuardar,
           opciones: opcionesConTotales,
           basesExtra,
         });
+        folioGuardado = guardada.folio;
       } else {
         await actualizarCotizacion({
           folio: folioParam,
@@ -174,7 +174,7 @@ export default function EditarCotizacion() {
           basesExtra,
         });
       }
-      setModalFolio(esVencida ? folio : folioParam);
+      setModalFolio(folioGuardado);
     } catch (e) {
       alert("Error al guardar: " + e.message);
     }
