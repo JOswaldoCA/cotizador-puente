@@ -102,8 +102,7 @@ serve(async (req) => {
                   style="display:block;max-width:180px;height:auto"/>
               </td>
               <td align="right" style="vertical-align:middle">
-                <p style="color:#FFD700;font-size:12px;font-weight:700;margin:0;font-family:Arial,sans-serif">Puente Ambiental</p>
-                <p style="color:#93C5FD;font-size:10px;margin:4px 0 0;font-family:Arial,sans-serif">del Noroeste S.A de C.V</p>
+                <p style="color:#FFD700;font-size:12px;font-weight:700;margin:0;font-family:Arial,sans-serif;white-space:nowrap">Puente Ambiental del Noroeste S.A de C.V</p>
               </td>
             </tr>
           </table>
