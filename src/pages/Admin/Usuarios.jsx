@@ -39,8 +39,7 @@ export default function Usuarios() {
     const fetchData = async () => {
       setCargando(true);
       const { data, error } = await supabase
-        .from("usuarios_admin")
-        .select("*")
+        .rpc("listar_usuarios")
         .order("created_at", { ascending: false });
       if (!error) setUsuarios(data || []);
       setCargando(false);
