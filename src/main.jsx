@@ -1,13 +1,16 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { AuthProvider } from './hooks/AuthProvider.jsx'
+import { AvisosProvider } from './hooks/AvisosProvider.jsx'
 import './index.css'
 import App from './App.jsx'
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
     <AuthProvider>
-      <App />
+      <AvisosProvider>
+        <App />
+      </AvisosProvider>
     </AuthProvider>
   </StrictMode>
 )

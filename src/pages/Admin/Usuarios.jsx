@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../../services/supabase";
 import { useAuth } from "../../hooks/useAuth";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
+import { useAvisos } from "../../hooks/useAvisos";
 
 const SUCURSALES_LABEL = {
   matriz: "SUC. MATRIZ",
@@ -23,6 +24,7 @@ const AHORA = Date.now();
 
 export default function Usuarios() {
   const { perfil } = useAuth();
+  const { avisar, confirmar } = useAvisos();
   const navigate = useNavigate();
 
   const [usuarios, setUsuarios] = useState([]);
@@ -49,13 +51,18 @@ export default function Usuarios() {
 
   const cambiarRol = async (id, rolActual) => {
     const nuevoRol = rolActual === "admin" ? "usuario" : "admin";
-    if (!confirm(`¿Cambiar rol a ${nuevoRol}?`)) return;
+    const ok = await confirmar(`¿Cambiar rol a ${nuevoRol}?`, {
+      titulo: "Cambiar rol",
+      textoAceptar: "Cambiar",
+    });
+    if (!ok) return;
     setCambiando(id);
     const { error } = await supabase
       .from("perfiles")
       .update({ rol: nuevoRol })
       .eq("id", id);
-    if (!error)
+    if (error) avisar("No se pudo cambiar el rol: " + error.message);
+    else
       setUsuarios((prev) =>
         prev.map((u) => (u.id === id ? { ...u, rol: nuevoRol } : u)),
       );

@@ -19,7 +19,8 @@ import { SUCURSALES } from "../utils/constantes";
 import { supabase } from "../services/supabase";
 import { exportarCotizacionesExcel } from "../utils/exportarExcel";
 import Tooltip from "../components/Tooltip";
-import { diasParaVencer } from "../utils/calculos";
+import { diasParaVencer } from "../utils/calculos";
+import { useAvisos } from "../hooks/useAvisos";
 
 const ESTATUS = ["En revisión", "Aprobada", "Rechazada"];
 
@@ -35,6 +36,7 @@ const inputCls =
 
 export default function Cotizaciones() {
   const { perfil } = useAuth();
+  const { avisar, confirmar } = useAvisos();
   const navigate = useNavigate();
 
   const [cotizaciones, setCotizaciones] = useState([]);
@@ -78,9 +80,19 @@ export default function Cotizaciones() {
   }, [perfil]);
 
   const eliminar = async (folio) => {
-    if (!confirm(`¿Eliminar la cotización ${folio}?`)) return;
-    await eliminarCotizacion(folio);
-    setCotizaciones((prev) => prev.filter((c) => c.folio !== folio));
+    const ok = await confirmar(`¿Eliminar la cotización ${folio}?`, {
+      titulo: "Eliminar cotización",
+      textoAceptar: "Eliminar",
+      peligro: true,
+    });
+    if (!ok) return;
+    try {
+      await eliminarCotizacion(folio);
+      setCotizaciones((prev) => prev.filter((c) => c.folio !== folio));
+      avisar(`Cotización ${folio} eliminada.`, "exito");
+    } catch (e) {
+      avisar("No se pudo eliminar: " + e.message);
+    }
   };
 
   const abrirEmailModal = (cot) => {
@@ -136,10 +148,11 @@ export default function Cotizaciones() {
     const estatusActual = seguimientoModal.estatus || "En revisión";
     if (nuevoEstatus === estatusActual) return; // no cambió nada
 
-    const confirmar = confirm(
+    const ok = await confirmar(
       `¿Confirmas cambiar el estatus de "${estatusActual}" a "${nuevoEstatus}"?${notaEstatus ? `\n\nNota: ${notaEstatus}` : ""}`,
+      { titulo: "Cambiar estatus", textoAceptar: "Cambiar" },
     );
-    if (!confirmar) return;
+    if (!ok) return;
 
     setGuardandoEst(true);
     try {
@@ -161,7 +174,7 @@ export default function Cotizaciones() {
       setNotaEstatus("");
       setSeguimientoModal((prev) => ({ ...prev, estatus: nuevoEstatus }));
     } catch (e) {
-      alert("Error: " + e.message);
+      avisar("No se pudo cambiar el estatus: " + e.message);
     }
     setGuardandoEst(false);
   };

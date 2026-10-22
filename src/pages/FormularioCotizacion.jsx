@@ -17,7 +17,8 @@ import { obtenerClientes, obtenerServicios } from "../services/sqlserver";
 import ModalCotizacion from "../components/ModalCotizacion";
 import { useAuth } from "../hooks/useAuth";
 import BasesEditor from "../components/BasesEditor";
-import { esSupervisor } from "../utils/permisos";
+import { esSupervisor } from "../utils/permisos";
+import { useAvisos } from "../hooks/useAvisos";
 
 const input =
   "border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-primary-600/20 focus:border-primary-600 w-full bg-white transition-all duration-200";
@@ -65,6 +66,7 @@ export default function FormularioCotizacion() {
   } = useCotizacion();
 
   const { perfil } = useAuth();
+  const { avisar } = useAvisos();
   const buscadorRef = useRef(null);
 
   const [catalogoServicios, setCatalogoServicios] = useState([]);
@@ -162,7 +164,7 @@ export default function FormularioCotizacion() {
 
   const guardar = async () => {
     if (!cliente.atencion && !cliente.contacto)
-      return alert("Escribe o selecciona el nombre del cliente.");
+      return avisar("Escribe o selecciona el nombre del cliente.");
     setGuardando(true);
     try {
       const opcionesConTotales = opciones.map((op) => ({
@@ -187,7 +189,7 @@ export default function FormularioCotizacion() {
         setModalFolio(guardada.folio);
       }
     } catch (e) {
-      alert("Error al guardar: " + e.message);
+      avisar("Error al guardar: " + e.message);
     }
     setGuardando(false);
   };
