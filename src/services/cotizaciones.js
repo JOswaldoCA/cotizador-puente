@@ -1,33 +1,6 @@
 import { supabase } from "./supabase";
 import { esSupervisor } from "../utils/permisos";
 
-// ── Helper bitácora ──────────────────────────────────────────────
-async function registrarBitacora({ accion, folio, detalle, sucursal }) {
-  try {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) return;
-
-    const { data: perfil } = await supabase
-      .from("perfiles")
-      .select("nombre")
-      .eq("id", user.id)
-      .single();
-
-    await supabase.from("bitacora").insert({
-      usuario_id: user.id,
-      nombre_usuario: perfil?.nombre || "Usuario",
-      accion,
-      folio: folio || null,
-      detalle: detalle || null,
-      sucursal: sucursal || null,
-    });
-  } catch (e) {
-    console.warn("Error al registrar bitácora:", e.message);
-  }
-}
-
 // ── Columnas y opciones en el formato de guardar_cotizacion / actualizar_cotizacion
 function datosCotizacion(cot) {
   return {
@@ -66,16 +39,6 @@ export async function guardarCotizacion(cot) {
   });
 
   if (error) throw error;
-  const folio = data.folio;
-
-  // ← Registrar en bitácora
-  await registrarBitacora({
-    accion: "CREÓ",
-    folio,
-    detalle: `Cliente: ${cot.cliente.contacto || cot.cliente.atencion}`,
-    sucursal: cot.sucursal.tipo,
-  });
-
   return data;
 }
 
@@ -144,14 +107,8 @@ export async function obtenerCotizaciones() {
 }
 
 // ── eliminarCotizacion ───────────────────────────────────────────
+// La bitácora la registran triggers en la base
 export async function eliminarCotizacion(folio) {
-  // Obtener datos antes de eliminar para la bitácora
-  const { data: cot } = await supabase
-    .from("cotizaciones")
-    .select("cliente_contacto, sucursal_tipo")
-    .eq("folio", folio)
-    .single();
-
   const { error } = await supabase
     .from("cotizaciones")
     .delete()
@@ -159,13 +116,6 @@ export async function eliminarCotizacion(folio) {
 
   if (error) throw error;
 
-  // ← Registrar en bitácora
-  await registrarBitacora({
-    accion: "ELIMINÓ",
-    folio,
-    detalle: `Cliente: ${cot?.cliente_contacto || "—"}`,
-    sucursal: cot?.sucursal_tipo,
-  });
 }
 
 // ── obtenerCotizacion ────────────────────────────────────────────
@@ -191,13 +141,6 @@ export async function actualizarCotizacion(cot) {
 
   if (error) throw error;
 
-  // ← Registrar en bitácora
-  await registrarBitacora({
-    accion: "EDITÓ",
-    folio: cot.folio,
-    detalle: `Cliente: ${cot.cliente.contacto || cot.cliente.atencion}`,
-    sucursal: cot.sucursal.tipo,
-  });
 }
 
 // ── actualizarEstatus ────────────────────────────────────────────
@@ -229,19 +172,6 @@ export async function actualizarEstatus(folio, estatusNuevo, nota, perfil) {
     });
 
   if (errorHist) throw errorHist;
-
-  // ← Registrar en bitácora
-  await registrarBitacora({
-    accion:
-      estatusNuevo === "Aprobada"
-        ? "APROBÓ"
-        : estatusNuevo === "Rechazada"
-          ? "RECHAZÓ"
-          : "CAMBIÓ ESTATUS",
-    folio,
-    detalle: `${cot.estatus} → ${estatusNuevo}${nota ? ` · ${nota}` : ""}`,
-    sucursal: cot.sucursal_tipo,
-  });
 
   // Notificar al vendedor solo si es distinto al que cambia el estatus
   if (cot.usuario_id && cot.usuario_id !== perfil.id) {

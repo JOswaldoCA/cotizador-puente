@@ -301,6 +301,27 @@ serve(async (req) => {
       return json({ error: resendData }, 500)
     }
 
+    // La bitácora solo se escribe del lado del servidor
+    const { data: perfil } = await sesion.supabase
+      .from('perfiles')
+      .select('nombre')
+      .eq('id', sesion.user.id)
+      .maybeSingle()
+
+    const admin = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+    )
+    const { error: errorBitacora } = await admin.from('bitacora').insert({
+      usuario_id:     sesion.user.id,
+      nombre_usuario: perfil?.nombre || 'Usuario',
+      accion:         'ENVIÓ CORREO',
+      folio:          cot.folio,
+      detalle:        `A: ${destinatarios.join(', ')}`,
+      sucursal:       cot.sucursal_tipo,
+    })
+    if (errorBitacora) console.log('Error bitácora:', errorBitacora.message)
+
     console.log(`Enviada ${cot.folio} por ${sesion.user.id} a ${destinatarios.length} destinatario(s)`)
     return json({ ok: true })
 

@@ -41,24 +41,6 @@ export default function ModalCotizacion({ folio, emailCliente }) {
         throw new Error(msg || errorEnvio.message);
       }
       setEnviado(true);
-
-      // ← Registrar en bitácora
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      const { data: perfil } = await supabase
-        .from("perfiles")
-        .select("nombre, sucursal_id")
-        .eq("id", user.id)
-        .single();
-      await supabase.from("bitacora").insert({
-        usuario_id: user.id,
-        nombre_usuario: perfil?.nombre || "Usuario",
-        accion: "ENVIÓ CORREO",
-        folio,
-        detalle: `A: ${dest.join(", ")}`,
-        sucursal: cot.sucursal?.tipo || null,
-      });
     } catch (e) {
       setError("No se pudo enviar: " + e.message);
     }

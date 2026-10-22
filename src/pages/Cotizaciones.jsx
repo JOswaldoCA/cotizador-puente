@@ -109,22 +109,6 @@ export default function Cotizaciones() {
       );
       if (errorEnvio) throw errorEnvio;
       setEnviado(true);
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      const { data: perfilData } = await supabase
-        .from("perfiles")
-        .select("nombre, sucursal_id")
-        .eq("id", user.id)
-        .single();
-      await supabase.from("bitacora").insert({
-        usuario_id: user.id,
-        nombre_usuario: perfilData?.nombre || "Usuario",
-        accion: "ENVIÓ CORREO",
-        folio: emailModal.folio,
-        detalle: `A: ${dest.join(", ")}`,
-        sucursal: cot.sucursal?.tipo || null,
-      });
     } catch (e) {
       setErrorEmail("No se pudo enviar: " + e.message);
     }
