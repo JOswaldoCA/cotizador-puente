@@ -16,7 +16,8 @@ import {
 import ModalCotizacion from "../components/ModalCotizacion";
 import BasesEditor from "../components/BasesEditor";
 import { useAuth } from "../hooks/useAuth"; // ← agrega
-import { SUCURSALES, VIGENCIAS } from "../utils/constantes";
+import { SUCURSALES, VIGENCIAS } from "../utils/constantes";
+import { esSupervisor } from "../utils/permisos";
 
 const input =
   "border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-primary-600/20 focus:border-primary-600 w-full bg-white transition-all duration-200";
@@ -71,8 +72,7 @@ export default function EditarCotizacion() {
   const [guardando, setGuardando] = useState(false);
   const [esVencida, setEsVencida] = useState(false);
   const [modalFolio, setModalFolio] = useState(null);
-  const puedeElegirSucursal =
-    perfil?.rol === "admin" || perfil?.puesto === "gerente"; // ← agrega
+  const puedeElegirSucursal = esSupervisor(perfil);
 
   useEffect(() => {
     Promise.all([

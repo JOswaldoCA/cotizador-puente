@@ -360,6 +360,7 @@ export default function Usuarios() {
                         >
                           <option value="vendedor">Vendedor</option>
                           <option value="administrativo">Administrativo</option>
+                          <option value="coordinador">Coordinador</option>
                           <option value="gerente">Gerente</option>
                         </select>
                       ) : (
@@ -581,6 +582,7 @@ export default function Usuarios() {
                       >
                         <option value="vendedor">Vendedor</option>
                         <option value="administrativo">Administrativo</option>
+                        <option value="coordinador">Coordinador</option>
                         <option value="gerente">Gerente</option>
                       </select>
                     ) : (

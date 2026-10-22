@@ -9,6 +9,11 @@ import {
 } from "../services/cotizaciones";
 import { generarPDFBase64 } from "../utils/generarPDF";
 import { estaVencida } from "../utils/calculos";
+import {
+  puedeEditar as permisoEditar,
+  puedeEliminar as permisoEliminar,
+  puedeCambiarEstatus,
+} from "../utils/permisos";
 import { useAuth } from "../hooks/useAuth";
 import { SUCURSALES } from "../utils/constantes";
 import { supabase } from "../services/supabase";
@@ -195,10 +200,8 @@ export default function Cotizaciones() {
     fechaDesde ||
     fechaHasta;
 
-  const puedeEditar = (cot) =>
-    perfil?.rol === "admin" ||
-    perfil?.puesto === "gerente" || // ← agrega esto
-    cot.usuario_id === perfil?.id;
+  const puedeEditar = (cot) => permisoEditar(perfil, cot);
+  const puedeEliminar = (cot) => permisoEliminar(perfil, cot);
 
   const meses = {
     enero: 0,
@@ -580,7 +583,7 @@ export default function Cotizaciones() {
                       >
                         📋
                       </button>
-                      {puedeEditar(cot) ? (
+                      {puedeEliminar(cot) ? (
                         <button
                           onClick={() => eliminar(cot.folio)}
                           className="col-span-1 text-xs py-2.5 rounded-xl border border-red-100 text-red-400 hover:bg-red-50 text-center"
@@ -795,7 +798,7 @@ export default function Cotizaciones() {
                                 📋
                               </button>
                             </Tooltip>
-                            {puedeEditar(cot) && (
+                            {puedeEliminar(cot) && (
                               <Tooltip text="Eliminar cotización">
                                 <button
                                   onClick={() => eliminar(cot.folio)}
@@ -996,7 +999,7 @@ export default function Cotizaciones() {
                   {seguimientoModal.estatus || "En revisión"}
                 </span>
               </div>
-              {puedeEditar(seguimientoModal) && (
+              {puedeCambiarEstatus(perfil) && (
                 <div
                   className="flex flex-col gap-3 border border-gray-200 rounded-xl p-4"
                   style={{

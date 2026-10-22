@@ -1,4 +1,5 @@
 import { supabase } from "./supabase";
+import { esSupervisor } from "../utils/permisos";
 
 // ── Helper bitácora ──────────────────────────────────────────────
 async function registrarBitacora({ accion, folio, detalle, sucursal }) {
@@ -99,17 +100,15 @@ export async function obtenerCotizaciones() {
     .eq('id', user.id)
     .single()
 
-  // Admin o Gerente ven todas
-  const esAdmin   = perfil?.rol === 'admin'
-  const esGerente = perfil?.puesto === 'gerente'
+  // Admin, gerente o coordinador ven todas
 
   let query = supabase
     .from('cotizaciones')
     .select('*, cotizacion_opciones(*)')
     .order('created_at', { ascending: false })
 
-  // Si no es admin ni gerente, solo ve las suyas
-  if (!esAdmin && !esGerente) {
+  // Los demás solo ven las suyas
+  if (!esSupervisor(perfil)) {
     query = query.eq('usuario_id', user.id)
   }
 

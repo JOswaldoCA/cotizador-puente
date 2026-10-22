@@ -2,7 +2,8 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { obtenerCotizaciones } from "../services/cotizaciones";
 import { useAuth } from "../hooks/useAuth";
-import { estaVencida, diasParaVencer } from "../utils/calculos";
+import { estaVencida, diasParaVencer } from "../utils/calculos";
+import { esSupervisor } from "../utils/permisos";
 
 const badgeEstatus = (e) => {
   if (e === "Aprobada")
@@ -168,11 +169,9 @@ export default function Dashboard() {
             Hola, {perfil?.nombre?.split(" ")[0] || "Usuario"} 👋
           </h2>
           <p className="text-sm text-gray-400 mt-1">
-            {perfil?.rol === "admin"
+            {esSupervisor(perfil)
               ? "👁️ Vista global — todas las sucursales"
-              : perfil?.puesto === "gerente"
-                ? "👁️ Vista global — todas las sucursales"
-                : "Aquí está el resumen de tu actividad"}
+              : "Aquí está el resumen de tu actividad"}
           </p>
         </div>
         <div className="text-right hidden md:block">
@@ -456,7 +455,7 @@ export default function Dashboard() {
       </div>
 
       {/* Resumen por sucursal — solo admin */}
-      {(perfil?.rol === "admin" || perfil?.puesto === "gerente") && (
+      {esSupervisor(perfil) && (
         <div
           className="bg-white rounded-2xl border border-gray-100 overflow-hidden"
           style={{ boxShadow: "0 1px 3px rgba(27,58,107,0.06)" }}
