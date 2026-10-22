@@ -13,19 +13,18 @@ const styles = StyleSheet.create({
   page: {
     fontFamily: "Helvetica",
     fontSize: 9,
-    paddingVertical: 18,
+    paddingVertical: 16,
     paddingHorizontal: 24,
     color: "#111",
     backgroundColor: "#ffffff",
   },
-  divider: { borderBottom: "2px solid #1B3A6B", marginBottom: 6 },
+  divider: { borderBottom: "2px solid #1B3A6B", marginBottom: 10 },
   fechaRow: {
     flexDirection: "row",
     justifyContent: "flex-end",
-    gap: 4,
-    marginBottom: 6,
+    marginBottom: 3,
   },
-  fechaBox: { flexDirection: "row", border: "1px solid #d1d5db", fontSize: 8 },
+  fechaBox: { flexDirection: "row", border: "1px solid #d1d5db", fontSize: 9 },
   fechaLabel: {
     padding: "2 6",
     backgroundColor: "#EEF2FF",
@@ -44,18 +43,18 @@ const styles = StyleSheet.create({
   razonSocial: {
     fontSize: 9,
     color: "#374151",
-    marginBottom: 6,
+    marginBottom: 10,
     borderBottom: "1px solid #d1d5db",
-    paddingBottom: 3,
+    paddingBottom: 4,
   },
-  intro: { fontSize: 8, lineHeight: 1.4, marginBottom: 4, color: "#4B5563" },
+  intro: { fontSize: 8, lineHeight: 1.5, marginBottom: 6, color: "#4B5563" },
   cotLabel: {
     fontSize: 9,
     fontFamily: "Helvetica-Bold",
     marginBottom: 2,
     color: "#1B3A6B",
   },
-  cotTexto: { fontSize: 8, lineHeight: 1.4, marginBottom: 4, color: "#4B5563" },
+  cotTexto: { fontSize: 8, lineHeight: 1.5, marginBottom: 6, color: "#4B5563" },
   border: { border: "1px solid #d1d5db" },
   tableHeader: { flexDirection: "row", backgroundColor: "#FFD700" },
   tableHeaderCell: {
@@ -102,19 +101,16 @@ const styles = StyleSheet.create({
   basesTitle: {
     fontSize: 9,
     fontFamily: "Helvetica-Bold",
-    marginTop: 6,
+    marginTop: 8,
     marginBottom: 3,
     color: "#1B3A6B",
   },
-  // Bases en dos columnas para que la cotización quepa en una hoja
-  basesGrid: { flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between" },
-  baseItem: { width: "49%", fontSize: 7.5, color: "#555", marginBottom: 2, lineHeight: 1.3 },
+  baseItem: { fontSize: 8, color: "#555", marginBottom: 2, lineHeight: 1.4 },
   baseItemExtra: {
-    width: "49%",
     fontSize: 7.5,
     color: "#1B3A6B",
     marginBottom: 2,
-    lineHeight: 1.3,
+    lineHeight: 1.4,
     fontFamily: "Helvetica-Bold",
   },
   footer: { borderTop: "2px solid #1B3A6B", marginTop: 8, paddingTop: 4 },
@@ -135,7 +131,7 @@ export function DocumentoPDF({ cot }) {
           style={{
             flexDirection: "row",
             justifyContent: "space-between",
-            marginBottom: 6,
+            marginBottom: 10,
             alignItems: "flex-start",
           }}
         >
@@ -143,7 +139,7 @@ export function DocumentoPDF({ cot }) {
           <View style={{ width: "50%" }}>
             <Image
               src={logoBase64}
-              style={{ width: 150, height: 55, objectFit: "contain" }}
+              style={{ width: 200, height: 75, objectFit: "contain" }}
             />
           </View>
           {/* Info sucursal compacta en una línea */}
@@ -197,14 +193,20 @@ export function DocumentoPDF({ cot }) {
               {folio}
             </Text>
           </View>
+        </View>
+        <View style={styles.fechaRow}>
           <View style={styles.fechaBox}>
-            <Text style={styles.fechaLabel}>PRESENTADA:</Text>
+            <Text style={styles.fechaLabel}>COTIZACIÓN PRESENTADA:</Text>
             <Text style={styles.fechaValor}>{fecha}</Text>
           </View>
+        </View>
+        <View style={styles.fechaRow}>
           <View style={styles.fechaBox}>
             <Text style={styles.fechaLabel}>VIGENCIA</Text>
             <Text style={styles.fechaValor}>{cliente?.vigencia}</Text>
           </View>
+        </View>
+        <View style={{ ...styles.fechaRow, marginBottom: 10 }}>
           <View style={styles.fechaBox}>
             <Text style={styles.fechaLabel}>FACTURACIÓN</Text>
             <Text
@@ -231,7 +233,7 @@ export function DocumentoPDF({ cot }) {
         <Text style={styles.intro}>
           Por este medio, nos permitimos presentarle los servicios de Puente
           Ambiental del Noroeste SA de CV, una empresa 100% sonorense, enfocada
-          en buscar y lograr la satisfacción de nuestros clientes.{" "}
+          en buscar y lograr la satisfacción de nuestros clientes.{"\n\n"}
           Ofrecemos el servicio de recolección y transporte de residuos sólidos
           urbanos, residuos de manejo especial y residuos no peligrosos con la
           visión de posicionarnos como la empresa número uno en servicio,
@@ -373,7 +375,7 @@ export function DocumentoPDF({ cot }) {
 
         {/* BASES — sin info de sucursal a la derecha */}
         <Text style={styles.basesTitle}>BASES DE LA COTIZACIÓN</Text>
-        <View style={styles.basesGrid}>
+        <View>
           {BASES.map((b, i) => (
             <Text key={i} style={styles.baseItem}>
               • {b}
@@ -392,7 +394,7 @@ export function DocumentoPDF({ cot }) {
             marginTop: 8,
             border: "1px solid #e5e7eb",
             borderLeft: "3px solid #1B3A6B",
-            padding: "5 10",
+            padding: "6 10",
             backgroundColor: "#F8FAFF",
           }}
         >
@@ -406,7 +408,6 @@ export function DocumentoPDF({ cot }) {
           >
             DATOS BANCARIOS
           </Text>
-          <View style={{ flexDirection: "row", flexWrap: "wrap" }}>
           {[
             ["RAZÓN SOCIAL", "PUENTE AMBIENTAL DEL NOROESTE SA DE CV"],
             ["RFC", "PAN160504GI0"],
@@ -414,14 +415,14 @@ export function DocumentoPDF({ cot }) {
             ["BANCO", "BBVA"],
             ["CUENTA BANCARIA", "0108825866"],
             ["CLAVE INTERBANCARIA", "012760001088258664"],
-          ].map(([label, valor], i) => (
-            <View key={label} style={{ flexDirection: "row", width: i % 2 === 0 ? "58%" : "42%", marginBottom: 2 }}>
+          ].map(([label, valor]) => (
+            <View key={label} style={{ flexDirection: "row", marginBottom: 2 }}>
               <Text
                 style={{
                   fontSize: 7.5,
                   fontFamily: "Helvetica-Bold",
                   color: "#374151",
-                  width: i % 2 === 0 ? 92 : 112,
+                  width: 100,
                 }}
               >
                 {label}:
@@ -441,9 +442,9 @@ export function DocumentoPDF({ cot }) {
               </Text>
             </View>
           ))}
-          </View>
         </View>
 
+        {/* El pie no se parte entre hojas */}
         <View style={styles.footer} wrap={false}>
           <Text
             style={{
