@@ -302,36 +302,12 @@ export async function actualizarEstatus(folio, estatusNuevo, nota, perfil) {
       folio,
     })
 
-    // Correo al vendedor
+    // Correo al vendedor: la función obtiene destinatario, estatus y nota de la base
     try {
-      const { data: emailVendedor } = await supabase.rpc('email_vendedor', { p_folio: folio })
-
-      if (emailVendedor) {
-        // Obtener token de sesión actual
-        const { data: { session } } = await supabase.auth.getSession()
-
-        const res = await fetch(
-          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/notificar-estatus`,
-          {
-            method: 'POST',
-            headers: {
-              'Content-Type':  'application/json',
-              'apikey':        import.meta.env.VITE_SUPABASE_ANON_KEY,
-              'Authorization': `Bearer ${session.access_token}`, // ← token del usuario
-            },
-            body: JSON.stringify({
-              email:   emailVendedor,
-              folio,
-              estatus: estatusNuevo,
-              cliente: cot.cliente_contacto,
-              nota,
-              admin:   perfil.nombre,
-            }),
-          }
-        )
-        const resData = await res.json()
-        console.log('Respuesta notificar-estatus:', resData)
-      }
+      const { error: errorCorreo } = await supabase.functions.invoke('notificar-estatus', {
+        body: { folio },
+      })
+      if (errorCorreo) throw errorCorreo
     } catch (e) {
       console.warn('Error al enviar notificación por correo:', e.message)
     }
