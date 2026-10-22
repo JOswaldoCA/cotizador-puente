@@ -1,7 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  ChevronLeft,
   ChevronRight,
   FileDown,
   FileSpreadsheet,
@@ -40,6 +39,7 @@ import { useAvisos } from "../hooks/useAvisos";
 import Boton from "../components/ui/Boton";
 import BotonIcono from "../components/ui/BotonIcono";
 import Modal from "../components/ui/Modal";
+import Paginacion from "../components/ui/Paginacion";
 import { EtiquetaEstatus } from "../components/ui/Estatus";
 import { campo, etiqueta } from "../components/ui/estilos";
 import EnvioCorreo from "../components/EnvioCorreo";
@@ -429,45 +429,7 @@ export default function Cotizaciones() {
               </table>
             </div>
 
-            {/* Paginación */}
-            {totalPaginas > 1 && (
-              <nav className="flex items-center justify-center gap-1" aria-label="Paginación">
-                <Boton
-                  variante="fantasma"
-                  tamaño="sm"
-                  icono={ChevronLeft}
-                  onClick={() => setPagina((p) => Math.max(1, p - 1))}
-                  disabled={pagina === 1}
-                >
-                  Anterior
-                </Boton>
-                {Array.from({ length: Math.min(5, totalPaginas) }, (_, i) => {
-                  const p = Math.min(Math.max(1, pagina - 2), Math.max(1, totalPaginas - 4)) + i;
-                  return (
-                    <button
-                      key={p}
-                      type="button"
-                      onClick={() => setPagina(p)}
-                      aria-current={p === pagina ? "page" : undefined}
-                      className={`w-8 h-8 rounded-lg text-xs font-semibold transition-colors ${
-                        p === pagina ? "bg-primary-600 text-white" : "text-gray-600 hover:bg-primary-50"
-                      }`}
-                    >
-                      {p}
-                    </button>
-                  );
-                })}
-                <Boton
-                  variante="fantasma"
-                  tamaño="sm"
-                  onClick={() => setPagina((p) => Math.min(totalPaginas, p + 1))}
-                  disabled={pagina === totalPaginas}
-                >
-                  Siguiente
-                  <ChevronRight size={14} aria-hidden="true" />
-                </Boton>
-              </nav>
-            )}
+            <Paginacion pagina={pagina} totalPaginas={totalPaginas} onCambiar={setPagina} />
           </>
         )}
       </div>

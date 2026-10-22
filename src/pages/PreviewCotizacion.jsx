@@ -3,6 +3,8 @@ import { useEffect, useState } from "react";
 import { obtenerCotizacion } from "../services/cotizaciones";
 import { BASES, TEXTO_INTRO } from "../utils/constantes";
 import logo from "../assets/logoPA.png";
+import { FileText, Printer, X } from "lucide-react";
+import Boton from "../components/ui/Boton";
 
 export default function PreviewCotizacion() {
   const { folio } = useParams();
@@ -32,8 +34,8 @@ export default function PreviewCotizacion() {
         className="flex flex-col items-center justify-center h-screen gap-3"
         style={{ background: "#F0F4F8" }}
       >
-        <p className="text-4xl">📄</p>
-        <p className="text-gray-500 font-medium">Cotización no encontrada</p>
+        <FileText size={32} strokeWidth={1.5} className="text-gray-300" aria-hidden="true" />
+        <p className="text-gray-600">No encontramos la cotización {folio}, o no tienes acceso a ella.</p>
       </div>
     );
 
@@ -61,44 +63,19 @@ export default function PreviewCotizacion() {
       `}</style>
 
       {/* Barra de acciones */}
-      <div
-        className="no-print sticky top-0 z-10 px-6 py-3 flex items-center justify-between"
-        style={{
-          background: "rgba(240,244,248,0.9)",
-          backdropFilter: "blur(12px)",
-          borderBottom: "1px solid rgba(27,58,107,0.08)",
-          boxShadow: "0 1px 3px rgba(27,58,107,0.06)",
-        }}
-      >
-        <div className="flex items-center gap-3">
-          <div
-            className="w-8 h-8 rounded-lg flex items-center justify-center text-sm"
-            style={{ background: "linear-gradient(135deg, #1B3A6B, #0F2347)" }}
-          >
-            📄
-          </div>
-          <div>
-            <p className="text-xs font-bold text-primary-600">Vista previa</p>
-            <p className="text-xs text-gray-400 font-mono">{folio}</p>
-          </div>
+      <div className="no-print sticky top-0 z-10 px-4 sm:px-6 h-14 flex items-center justify-between gap-3 bg-white/90 backdrop-blur border-b border-linea">
+        <div className="min-w-0">
+          <p className="text-sm font-semibold text-primary-800">Vista previa</p>
+          <p className="text-xs text-gray-500 font-mono truncate">{folio}</p>
         </div>
         <div className="flex items-center gap-2">
-          <button
-            onClick={() => window.print()}
-            className="flex items-center gap-2 text-sm font-semibold px-5 py-2.5 rounded-xl text-white transition-all duration-200"
-            style={{
-              background: "linear-gradient(135deg, #1B3A6B, #0F2347)",
-              boxShadow: "0 2px 8px rgba(27,58,107,0.3)",
-            }}
-          >
-            🖨️ Imprimir / Guardar PDF
-          </button>
-          <button
-            onClick={() => window.close()}
-            className="text-sm font-medium px-5 py-2.5 rounded-xl border border-gray-200 text-gray-600 hover:bg-gray-100 transition-colors bg-white"
-          >
+          <Boton icono={Printer} onClick={() => window.print()}>
+            <span className="hidden sm:inline">Imprimir o guardar PDF</span>
+            <span className="sm:hidden">Imprimir</span>
+          </Boton>
+          <Boton variante="secundario" icono={X} onClick={() => window.close()}>
             Cerrar
-          </button>
+          </Boton>
         </div>
       </div>
 

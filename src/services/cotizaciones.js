@@ -177,8 +177,7 @@ export async function actualizarEstatus(folio, estatusNuevo, nota, perfil) {
 
   // Notificar al vendedor solo si es distinto al que cambia el estatus
   if (cot.usuario_id && cot.usuario_id !== perfil.id) {
-    const icono   = estatusNuevo === 'Aprobada' ? '✅' : estatusNuevo === 'Rechazada' ? '❌' : '🔄'
-    const titulo  = `${icono} Cotización ${estatusNuevo.toLowerCase()}`
+    const titulo  = estatusNuevo === 'En revisión' ? 'Cotización regresada a revisión' : `Cotización ${estatusNuevo.toLowerCase()}`
     const mensaje = `La cotización ${folio} de ${cot.cliente_contacto || 'cliente'} fue marcada como "${estatusNuevo}" por ${perfil.nombre}.${nota ? ` Nota: ${nota}` : ''}`
 
     // Notificación en app

@@ -55,32 +55,25 @@ export function AuthProvider({ children }) {
   }
 
   return (
-    <AuthContext.Provider value={{ usuario, perfil, cargando, login, registro, logout }}>
-      {/* Banner sesión expirada */}
+    <AuthContext.Provider value={{ usuario, perfil, cargando, login, registro, logout, recargarPerfil: () => cargarPerfil(usuario) }}>
+      {/* Aviso de sesión expirada */}
       {sesionExpirada && (
-        <div className="fixed inset-0 flex items-center justify-center z-[9999]"
-          style={{ background: 'rgba(9,22,41,0.7)', backdropFilter: 'blur(4px)' }}>
-          <div className="bg-white rounded-2xl p-8 max-w-sm w-full mx-4 text-center flex flex-col items-center gap-4"
-            style={{ boxShadow: '0 25px 50px rgba(9,22,41,0.3)' }}>
-            <div className="w-16 h-16 rounded-2xl flex items-center justify-center text-3xl"
-              style={{ background: 'linear-gradient(135deg, #FFF5F5, #FEE2E2)' }}>
-              ⏰
-            </div>
+        <div className="fixed inset-0 flex items-center justify-center z-[9999] p-4 bg-primary-900/70">
+          <div role="alertdialog" aria-modal="true" aria-labelledby="sesion-titulo"
+            className="bg-white rounded-2xl p-6 max-w-sm w-full flex flex-col gap-4 shadow-large">
             <div>
-              <h3 className="text-lg font-bold text-gray-800">Sesión expirada</h3>
-              <p className="text-sm text-gray-500 mt-1">
-                Tu sesión ha expirado por inactividad. Serás redirigido al inicio de sesión.
+              <h3 id="sesion-titulo" className="text-base font-semibold text-primary-800">Tu sesión terminó</h3>
+              <p className="text-sm text-gray-600 mt-1">
+                Por seguridad se cerró después de un tiempo sin actividad. Vuelve a iniciar sesión para continuar.
               </p>
             </div>
-            <div className="w-full bg-gray-100 rounded-full h-1.5 overflow-hidden">
-              <div className="h-full rounded-full animate-pulse"
-                style={{ background: 'linear-gradient(135deg, #1B3A6B, #0F2347)', width: '100%',
-                  animation: 'shrink 3s linear forwards' }}></div>
+            <div className="w-full bg-gray-100 rounded-full h-1 overflow-hidden" aria-hidden="true">
+              <div className="h-full rounded-full bg-primary-600 motion-reduce:hidden"
+                style={{ width: '100%', animation: 'shrink 3s linear forwards' }}></div>
             </div>
             <button onClick={() => { setSesionExpirada(false); window.location.href = '/login' }}
-              className="w-full text-white font-bold text-sm py-3 rounded-xl transition-all hover:scale-105 active:scale-95"
-              style={{ background: 'linear-gradient(135deg, #1B3A6B, #0F2347)', boxShadow: '0 4px 16px rgba(27,58,107,0.3)' }}>
-              Ir al login ahora →
+              className="w-full text-white font-semibold text-sm py-2.5 rounded-xl bg-primary-600 hover:bg-primary-800">
+              Iniciar sesión
             </button>
           </div>
         </div>
